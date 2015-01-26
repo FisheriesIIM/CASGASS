@@ -1,0 +1,104 @@
+---
+title: "**CA**tch rate **S**tandardisation of finfishes targeted by the **GA**lician (NE Atlantic) **S**mall-**S**cale fishery **CASGASS** (Progress Report ICES Science Fund)"
+author: A. Alonso-Fernández, J. Otero, X.A. Álvarez-Salgado, R. Bañón, J.M. Campelos, F. Quinteiro-Fernandez
+date: ICES ASC September, 2014 A Coruña (Spain)
+output: pdf_document
+---
+
+![research](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\research_groups2.jpg)
+
+# Project Objectives
+
+The principal aim of this study is to standardise catch and effort data obtained from observers on commercial fishing vessels for a number of finfish species targeted by the small-scale  fishing fleet off the Galician coast (ICES areas IXa and VIIIc). This would allow the development of indices of abundance which will be explored as useful input in future stock assessments. A secondary objective is to investigate the degree of synchronicity among trends in species' abundance in relation to environmental conditions and life history traits. More details are available elsewhere in the web site of the project [CASGASS][1].
+
+# Updated status of the project
+The work plan of the project comprises two main aspects:
+
++ **Research outputs and management options**: first, we're aiming to publish at least two research papers in high ranked peer-reviewed journals. Second, the resulting time series of standardized catch rates for each species will be made available for further use by the governmental agency.
++ **Learning and dissemination**: attendance to training courses and development of different outreach activities.
+
+## Research outputs
+The first step of the research was to compile all pieces of information required for the modelling of abundance of the 13 selected exploited species. This work is at its final stage and has been carried out in colaboration with the governmental agency UTPB ("Technical Unit of Artisanal Fisheries", Xunta de Galicia), that is in charge of the monitoring fishery-dependent program (years 1999-2013).
+
+![map](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\map_full.tif)
+
+**Figure 1**. Map of the study area.
+
+The set of species proposed as case study comprises the following: i) a number of species requested by the [WGHMM][2] (1) including the seabass (*Dicentrarchus labrax*), the gunnar (*Eutrigla gurnardus*), the plaice (*Pleuronectes platessa*), the pollack (*Pollachius pollachius*), the sole (*Solea vulgaris*), and the red mullet (*Mullus surmuletus*); and ii) a list of six other abundant and valuable species including the white seabream (*Diplodus sargus*), the pouting (*Trisopterus luscus*), the ballan wrasse (*Labrus bergylta*), the european conger (*Conger conger*), the undulate ray (*Raja undulata*), and the small-spotted catshark (*Scyliorhinus canicula*).
+
+However, we would like to note that during the kick off meeting (held in Santiago de Compostela on 28th April 2014) we decided to make a few changes in the selected set of species. In particular, we removed *Eutrigla gurnardus* and *Pleuronectes platessa* due to their low rates of captures. Those two species were replaced by two important invertebrates, common octopus (*Octopus vulgaris*) and the common spider crab (*Maja brachydactyla*). In addition,
+the European flounder (*Platychis flessus*) was also added to the final list.
+
+![map2](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\sampling_distribution.jpg)
+
+**Figure 2**. Distribution of sampling effort of the UTPB monitoring program across the Galician coastline.
+
+While compilation and cleaning (any bugs and typos removed) of the database is reaching to an end, we have run preliminary analyses of catch and effort species by species starting with *Pollachius pollachius*. In our observers database all response variables to be standardized are counts, moreover, errors might not be independent in time and/or space, thus there is a need to use appropriate statistical methods to provide robust time series of abundance. To this end, we have explored the use of several generalized linear models (GLMs) (2) including zero-inflated models (ZI) that allow the accommodation of excess of null samples (3).
+
+The ZI model is a mixture model where a binomial generalised linear model (GLM) is used to model the probability of measuring a zero, and the count process is modelled by a Poisson (ZIP) or negative binomial GLM (ZINB). The detailed description of the mathematics can be found elsewhere (4). Briefly, the ZI model would have a first component that contains only the zeros (the false zeros, Yi = 0), and the second component would contain the count data, which may produce zeros (true zeros, *Yi = yi = 0*) as well as values greater than zero (*Yi = yi | yi > 0*). Thus the probability Y of catching a fish at a site *i* can be summarised as follows:
+
+$$ P_{r} \left ( Y_{i} \right )= P_{r} \left ( False\: zeros \right ) +  \left ( 1 - P_{r} \left ( False\: zeros \right ) \right )\times P_{r} \left ( Zero\: counts \right ) $$
+
+where it is assumed that the probability that *Yi* is a false zero is binomially distributed and that the counts follow a Poisson (or negative binomial) distribution.
+
+As noted above, standardizing GLMs were first fitted to *Pollachius pollacius*. The modelling procedure developed for *Pollachius pollacius* will be the basis to be applied to the rest of species, and preliminary results will be presented at the [Johan Hjort Symposium on Recruitment Dynamics and Stock Variability][3] (5), to be held in Bergen (Norway) on 7^th^ - 9^th^ October 2014. A first glimpse of the results follows: we fitted a zero-inflated GLM asumming a Negative Binomial distribution (ZINB) to estimate trends in relative abundance of the by-catch species *Pollachius pollachius*. Abundance was related to operational, temporal, spatial and environmental variables. The model has been written in [R software][4] language and the code will be provided as a companion of all the research outputs. Specific details of the modelling approach were as follows: 
+
+### Preliminary results
+
+- Modelling pollack (*Pollachius pollachius*) numbers using a ZINB model (so far...) fitted to ~5.000 records (hauls). Pollack bycatch observed counts from 462 vessels using 4 gears in 1708 days.
+- ZI part of the model, probability that *Yi* is a false zero based on soak depth as explanatory variable.
+
+![pollack1](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\zi_part.jpg)
+
+**Figure 3**. Probability that *Yi* is a false zero based on soak depth.
+
+- We intruced an offset in the model for standirdizing effort for specific gear type (gillnets in this case): *area of net* x *soak time* 
+- Abundance was related to operational (boat size, crew), temporal (year, day of the year), spatial (latitude, longitude, depth) and environmental variables (upwelling, temperature).
+
+![pollack2](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\nb_part.jpg)
+
+**Figure 4**. Annual variation of abundance index. Results obtained from fitting a ZINB to the pollack count data.
+
+- Mean weight of individual fish per haul was used to transform abundance trend in biomass trend.
+
+![pollack3](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\biomass_part.jpg)
+
+**Figure 5**. Annual variation of biomass index.
+
+
+### Measurable research achievements.
+
+Although main analysis of trends in index of species' abundance is under development, there are some final measurable achievements of the project in the form of research publications:
+
+1. Alonso-Fernández A., Otero J., Villegas-Ríos D., Bañón R. (prepress abstract) *Drivers of body size changes in a Pollachius pollachius stock in NE Atlantic coastal waters*. Marine Ecology Progress Series, [doi: 10.3354/meps10939][5]
+2. Villegas-Ríos D., Alós J., Palmer M., Lowerre-Barbieri S.K., Bañón R., Alonso-Fernández A., Saborido-Rey F. (prepress abstract) *Life-history and activity shape catchability in a sedentary fish*. Marine Ecology Progress Series, [doi: 10.3354/meps11018][6]
+
+## Learning and dissemination
+As part of the scientific activities of this project and in order to broaden our knowledge and strengthen the skills that are of interest for its development we attended to different workshops and training courses:
+
+1. Alexandre Alonso-Fernández attended to the workshop on AD Model Builder[^1] held in Montpellier from the 28th to the 30th of June 2014 under the umbrella of the [International Statistical Ecology Conference](http://isec2014.sciencesconf.org).
+2. Alexandre Alonso Fernández and Jaime Otero attended to the training course *Quantitative Fisheries Science using FLR and a4a[^2]* during 25^th^ - 29^th^ August 2014 at the European Comission Join Research Centre in Ispra (Italy).
+
+Regarding outreach activities so far, the project team has disseminated this research by means of press releases in regional media, social networks and gropu web page ([more details][7]).
+
+Moreover, all the information presented in this first project report will be exposed in a 6-minute presentation + 6 minutes for discussion at the meeting on the progress of the ICES SciFund projects that will take place during *2014 ICES Annual Science Conference* in A Coruña (Spain).
+
+---
+# References
+1. ICES **2013** *Report of the Working Group on the Assessment of Southern Shelf Stocks of Hake, Monk, and Megrim (WGHMM)*, ICES CM 2013/ACOM:11A, 11 p.
+2. McCullagh P., Nelder J.A. **1989** *Generalized Linear Models*. Chapman & Hall, London, UK.
+3. Zuur A.F., Saveliev A.A., Ieno E.N. **2012** *Zero Inflated Models and Generalized Linear Mixed Models with R*. Highland Statistics Ltd., Newburgh, UK.
+4. Cameron A.C., Trivedi P.K. **1998** *Regression Analysis of Count Data*. Cambridge University
+Press, Cambridge.
+5. Otero J., Alonso-Fernández A., Villegas-Ríos D., Bañón R. **2014** *Standardizing trends in abundance of a Pollachius pollachius stock harvested along the Galician coast (NE atlantic)*. Johan Hjort Symposium on Recruitment Dynamics and Stock Variability, 7^th^- 9^th October 2014, Bergen, Norway^.
+
+[^1]: [AD Model Builder](http://www.admb-project.org) is a software package for the development of nonlinear statistical models.
+[^2]: The [a4a](https://fishreg.jrc.ec.europa.eu/web/a4a) ("assessment for all") is an European Commission initiative developed by the Maritime Affairs Unit - FISHREG. One of the main goals of the a4a initiative is to develop an stock assessment method targeting stocks that have a reduced knowledge base on biology and a moderately long time series on exploitation and abundance .
+
+[1]: http://www.ices.dk/community/icessciencefund/Pages/Catch-rate-standardisation-of-fin-fishes-targeted-by-the-Galician-(NW-Spain)-small-scale-fishery.aspx "CASGASS"
+[2]: http://www.ices.dk/sites/pub/Publication%20Reports/Expert%20Group%20Report/acom/2013/WGHMM/WGHMM%202013.pdf "WGHMM" 
+[3]: http://www.imr.no/om_havforskningsinstituttet/arrangementer/konferanser/johan_hjort_symposium_2014/en "Hjort"
+[4]: http://R-project.org "RProject"
+[5]: http://www.int-res.com/prepress/m10939.html "MEPS1"
+[6]: http://www.int-res.com/prepress/m11018.html "MEPS2"
+[7]: http://pesquerias.quadralia.net/casgass/ "Peslej"

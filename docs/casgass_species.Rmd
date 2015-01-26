@@ -1,0 +1,33 @@
+---
+title: "Set of species selected as case studies. **CASGASS** ICES Science Fund project"
+author: A. Alonso-Fernández, J. Otero, X.A. Álvarez-Salgado, R. Bañón, J.M. Campelos, F. Quinteiro-Fernandez
+date: "Vigo, September, 2014"
+output: pdf_document
+---
+
+# CASE STUDIES [CASGASS project][1]
+
+![fleet](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\ices_project2.jpg)
+
+The set of species proposed as case study comprises the following: i) a number of species requested by the [WGHMM][1] (1) including the seabass (*Dicentrarchus labrax*), the gunnar (*Eutrigla gurnardus*), the plaice (*Pleuronectes platessa*), the pollack (*Pollachius pollachius*), the sole (*Solea vulgaris*), and the red mullet (*Mullus surmuletus*); and ii) a list of six other abundant and valuable species including the white seabream (*Diplodus sargus*), the pouting (*Trisopterus luscus*), the ballan wrasse (*Labrus bergylta*), the european conger (*Conger conger*), the undulate ray (*Raja undulata*), and the small-spotted catshark (*Scyliorhinus canicula*).
+
+However, we would like to note that during the kick off meeting (held in Santiago de Compostela on 28th April 2014) we decided to make a few changes in the selected set of species. In particular, we removed *Eutrigla gurnardus* and *Pleuronectes platessa* due to their low rates of captures. Those two species were replaced by two important invertebrates, common octopus (*Octopus vulgaris*) and the common spider crab (*Maja brachydactyla*). In addition,
+the European flounder (*Platychis flessus*) was also added to the final list.
+
+## Fin-fish species
+![fleet](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\finfish.jpg)
+
+From topt left to bottom right: *Pollachius pollachius*, *Trisopterus luscus*, *Labrus bergylta*, *Conger conger*, *Dicentrarchus labrax*, *Diplodus sargus*, *Solea solea*, *Mullus surmuletus*, *Platychis flessus*, *Scyliorhinus canicula* and *Raja undulata*.
+
+## Invertebrate species
+\centering
+![fleet](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\invertebrates.jpg)
+
+*Octopus vulgaris* (Top panel) and *Maja brachydactyla* (Bottom panel)
+
+---
+# References
+1. ICES **2013** *Report of the Working Group on the Assessment of Southern Shelf Stocks of Hake, Monk, and Megrim (WGHMM)*, ICES CM 2013/ACOM:11A, 11 p.
+
+[1]: http://www.ices.dk/community/icessciencefund/Pages/Catch-rate-standardisation-of-fin-fishes-targeted-by-the-Galician-(NW-Spain)-small-scale-fishery.aspx "CASGASS"
+[2]: http://www.ices.dk/sites/pub/Publication%20Reports/Expert%20Group%20Report/acom/2013/WGHMM/WGHMM%202013.pdf "WGHMM"

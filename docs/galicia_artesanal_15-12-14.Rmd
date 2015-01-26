@@ -1,0 +1,73 @@
+---
+title: "Galicia artesanal"
+author: "Alexandre Alonso Fernández y Jaime Otero"
+date: "Lunes, Diciembre 15, 2014"
+output: pdf_document
+---
+
+# Luces y sombras en la gestión pesquera
+La idea de que las pesquerías mundiales están en una situación de sobreexplotación generalizada está ampliamente extendida entre el gran público y, también, en parte del mundo académico. Esta situación tiene su germen, entre otros, en las pesimistas predicciones de alto impacto mediático dadas por expertos internacionales (1). Rápidamente los medios de comunicación generalistas se hicieron eco proporcionando alarmantes titulares, artículos de opinión y otros comentarios. Sin embargo, el análisis detallado del estado de las pesquerías a nivel global y las predicciones sobre su evolución  muestran que la gestión pesquera  es una historia compleja plagada de múltiples y sonoros fracasos; pero también de no menos importantes éxitos (2). En cualquier caso, los niveles actuales de capturas de origen marino permanecen estables alrededor de 80 millones de toneladas desde finales de los años 80 (3).
+
+Teniendo en cuenta  estas  consideraciones, no se puede obviar que la situación de la pesca no es la más idónea ya que el número de stocks clasificados como sobreexplotados, o  incluso en estado de colapso[^1], es muy superior a los que están sujetos a una gestión que permita niveles de explotación sostenibles. Las situaciones más dramáticas  suelen estar asociadas con la gestión de grandes especies pelágicas migratorias,  tales como los túnidos o tiburones, y en pesquerías complejas donde se captura más de una especie, lo que se conoce como *pesquerías mixtas*[^2]. Las dificultades en la gestión de estos dos ejemplos vienen en parte por los problemas de acuerdos y/o control entre las flotas afectadas, en el caso de las pesquerías transfonterizas de especies altamente migratorias, o por la dificultad de establecer límites de explotación óptimos para todas las especies explotadas con características vitales dispares, en el caso de las pesquerías mixtas. Son varios los ejemplos de gestiones clasificadas como sostenibles y actualmente disponemos de herramientas para identificarlos a través del eco-etiquetado de pesca sostenible certificada ([MSC, Marine Stewardship Council](http://www.msc.org/?set_language=es)) (4). 
+
+Es por esta disparidad de resultados por lo que la gestión pesquera está bajo un escrutinio permanente y recibe de forma asidua críticas feroces por parte tanto del sector como de la opinión pública u otros actores. De nuevo es este  un panorama plagado de claroscuros. Revisiones globales del estado de las pesquerías indican, en cualquier caso, que como norma general  aquellas que se someten a una evaluación formal y están sujetas a medidas más o menos robustas de gestión se encuentra en mejor situación, que no óptima, que  las no evaluadas (5).
+
+# Europa y su gestión pesquera
+Más concretamente en el panorama europeo ocurren  dos situaciones bien diferenciadas. Por un lado el Mediterráneo presenta una realidad crítica con más del 95% de las poblaciones de especies de fondo y más del 70% en las pelágicas pelágicas, con la sardina y la anchoa entre las más destacadas, en situación de sobreexplotación , tal y como reconoce la propia [Comisión Europea](http://europa.eu/rapid/press-release_IP-14-724_en.htm). Por otra parte, los esfuerzos realizados en la gestión pesquera de la franja Atlántica Europea (incluyendo el Mar Báltico y Mar del Norte) parece que muestran signos positivos de recuperación, reduciendo la situación de sobreexplotación de un 86% a un 41% de las poblaciones de especies evaluadas en 2014. Por lo tanto, los métodos tradicionales de gestión y manejo de pesquerías, aunque en la actualidad en proceso de revisión al objeto de incorporar una dinámica más ecosistémica, basados en información científica contrastada y en datos fehacientes provenientes de la pesquería  son útiles y necesarios como herramienta de gestión y evaluación de los recursos sometidos a explotación pesquera (6).
+
+La Comisión Europea, en su afán por perseguir  una gestión sostenible de sus recursos pesqueros, ha llevado a cabo en fechas recientes una nueva reforma de la [Política Pesquera Común](http://ec.europa.eu/fisheries/reform/index_en.htm) con dos objetivos fundamentales: i) el esfuerzo pesquero debe situarse en niveles que aseguren el Rendimiento Máximo Sostenible con límite en el año 2020 y ii) la eliminación de los descartes. Pero estas dos medidas de máximos no están carentes de complejidad  tanto técnica para los científicos como de implantación para el sector. Además, anticipan consecuencias todavía inciertas en cuanto a su efecto sobre la actividad pesquera y el propio estado de los recursos.
+
+# ¿Qué papel juegan las pesquerías artesanales en el panorama Europeo?
+El sector pesquero europeo es de una alta complejidad tanto en lo que se refiere  al número de países involucrados, como a la multitud de especies de interés, y a las diferentes tipologías de flotas implicadas en la explotación  de los recursos. Dentro de esta complejidad cabe destacar un caso particular dentro de la flota pesquera europea como son las pesquerías artesanales. Históricamente estas pesquerías han sido obviadas en el debate  comunitario (e internacional), pero que debido a su importancia socioeconómica para las localidades costeras esta situación se está [revirtiendo](http://www.europarl.europa.eu/RegData/etudes/note/join/2012/474545/IPOL-PECH_NT(2012)474545_EN.pdf) (7).
+
+## Galicia como referente de las pesquerías artesanales en Europa
+España, Francia y Portugal se postulan como las potencias europeas en cuanto a flota artesanal se refiere, siendo, sin lugar a dudas, Galicia quien lidera este ranking con más de 4000 embarcaciones registradas (sin considerar marisqueo) en la actualidad. Este volumen de actividad da lugar a que la pesquería artesanal gallega sea extremadamente compleja tanto por el número de especies capturadas (no existen descartes significativos), como por la multitud  de artes de pesca utilizadas con más de 25 posibles en el catálogo oficial.
+
+Comúnmente se cree  que las pesquerías artesanales son el paradigma de la pesca sostenible, pero  en Galicia (como en otras comunidades), las [pesquerías de pequeña escala](http://www.europarl.europa.eu/RegData/etudes/etudes/join/2011/460059/IPOL-PECH_ET(2011)460059_EN.pdf) (8) no están exentas de problemas. En la actualidad, muchos de los recursos objetivo de la flota artesanal se encuentran fuera de cualquier plan de evaluación formal. No obstante, existen planes de manejo que incluyen regulaciones impuestas a la flota pero que en muchos casos carecen de un criterio científico robusto y contrastado. En ocasiones, la principal razón a la que se alude para justificar esta situación es la ausencia de datos fidedignos con los que gestionar los recursos bajo  criterios científicos (9). A pesar de esta aparente carencia de  información  algunos autores  adjudican a las poblaciones costeras de especies explotadas por la flota artesanal gallega una situación de sobrepesca (9, 10). Estas afirmaciones suelen estar basadas en un uso parcial de los datos disponibles que habitualmente son de naturaleza muy dispar y claramente insuficientes para responder a las preguntas que demanda el sector.
+
+Para aplicar modelos de evaluación tradicionales se requiere de un conjunto de datos de los que  la pesquería artesanal en Galicia no dispone. SSin embargo, y aunque carentes de campañas de investigación específicamente enfocadas a estos recursos, hasta donde llega nuestro conocimiento, el gobierno autonómico de la Xunta de Galicia centraliza  un registro estadístico de la actividad pesquera más o menos extenso y detallado [^3]. Es decir, aunque la situación en cuanto a datos es manifiesta y necesariamente mejorable, especialmente en lo que se refiere  tanto a datos biológicos como a datos accesorios a las ventas en las lonjas, el principal problema en lo que atañe a la evaluación de los recursos pesqueros no recae tanto en la falta de información como en el acceso y utilización de la misma.
+
+Si bien los modelos ortodoxos de evaluación son una herramienta útil pero no la panacea, las peculiaridades que presentan e los sectores pesqueros artesanales hacen que las estrategias de gestión incluyan rutas alternativas y/o complementarias  como son: i) la integración de los propios pescadores tanto en la evaluación como en la gestión antes y durante la toma de decisiones, ii) la implantación de sistemas de derechos de uso territorial para los pescadores o cuotas individuales transferibles (entre otros similares), iii) y la protección de hábitats clave, mediante la figura de areas marinas protegidas como herramienta básica de gestión.
+
+No obstante, y en cualquier caso antes de poder desarrollar y aplicar el modelo de gestión que sea para las especies objetivo del sector artesanal, será necesario obtener un diagnóstico real de la situación de los recursos. Para ello se requerirá de la acción conjunta y coordinada de todos los actores implicados, esto es pescadores, administración e instituciones científicas. Si bien esta demanda se pone siempre sobre la mesa pocas veces resulta efectiva y eficaz. Esta cooperación ha de pasar  imprescindiblemente por facilitar el acceso por parte de los técnicos a toda la información disponible y a la implementación de nuevos planes de monitoreo y mantenimiento y mejora de los ya existentes. La información recogida por estos programas de monitoreo debería incluir tanto datos biológicos, por ejemplo crecimiento y reproducción, , como de hábitats esenciales y estructura espacial de las poblaciones,  así como distribución del esfuerzo pesquero, volumen y origen de las capturas realizadas. Además se deberían contemplar formas de incorporar aspectos tales como el conocimiento ecológico tradicional de los propios pescadores atesorado durante décadas de trabajo en el medio que sin duda ayudaría a reforzar el grado de conocimiento del sistema y especies a gestionar. Como resultado de todo esto aumentaría la cantidad y, no menos importante, la calidad de los datos que podrían ser utilizados en las evaluaciones y estrategias de gestión.
+
+Por lo tanto, la colaboración entre instituciones académicas, administrativas y sector pesquero  se antoja imprescindible si se pretende evaluar el estado de los recursos y desarrollar estrategias de gestión y manejo que favorezcan la sostenibilidad de las especies objetivo de la pesquería artesanal gallega. En esta línea ya se están dando  pasos a través de acciones de investigación concretas [^4]. Por otra parte, la propia Comisión Europea y organismos internacionales como ICES pretenden  incluir en los procesos de evaluación el mayor número posible de poblaciones marinas explotadas [^5]. Esto  favorecería en un futuro acercarnos al ideal de gestión de la pesca basada en el ecosistema (11).
+
+En conclusión,  el sistema de gestión del sector de la pesca artesanal en Galicia no debería  estar basado en una estructura  de control de arriba hacia abajo donde la administración  establece un marco normativo que muchas veces obvia lo que pueden aportar otras partes directamente implicadas. El sistema debería tender hacia una estructura más horizontal, pero para ello será necesario que todos los actores de esta escena pongan las cartas boca arriba y trabajen conjuntamente en pos de un objetivo común de sostenibilidad  teniendo en cuenta todas las particularidades de esta industria y los recursos renovables en los que se sustenta, tanto desde  lo puramente científico y ecológico, a lo  estrictamente socioeconómico.
+
+-------------------------------------
+REFERENCIAS
+
+1. Myers and Worm (2003) Nature 423: 280-283.
+
+2. Worm et al. (2009) Science 325: 578-585.
+
+3. FAO (2014) Fisheries and Aquaculture Department  Rome: 223 pp.
+
+4. Gutiérrez et al. (2012) PLoS ONE 7: e43765.
+
+5. Costello et al. (2012) Science 338: 517-520.
+
+6. Pauly et al. (2013) Nature 494: 303-306
+
+7. Iborra Martín  (2012) European Parliament, Brussels, 39 pp.
+
+8. Macfadyen et al. (2011) European Parliament Brussels, 157 pp.
+
+9. Freire and García-Allut (2000) Marine Policy 24: 375-384
+
+10. Pita and  Freire (2014) Fisheries Management and Ecology Early View (Online Version)
+
+11. Jardim et al. (2014) ICES Journal of Marine Science: published online.
+
+
+
+[^1]: Se considera que una población explotada está en situación de *colapso* cuando su tamaño es inferior al 10% de su máximo histórico.
+
+[^2]: Las *pesquerías mixtas* o *multiespecie* (*mixed fisheries* es el término anglosajón más extendido) se corresponden con aquellas pesquerías en las que una misma flota  captura más de una especie.  
+
+[^3]: Tanto a través de la *Unidad Técnica de Pesca de Bajura* (UTPB), de los biólogos de zona destinado en las diferentes cofradías repartidas por toda Galicia y de la plataforma [Pesca de Galicia](http://www.pescadegalicia.com/).
+
+[^4]: Proyecto **CASGASS**: [CAtch rate Standardisation of fin-fishes targeted by the GAlician (NW Spain) Small-Scale fishery](http://www.ices.dk/community/icessciencefund/Pages/Catch-rate-standardisation-of-fin-fishes-targeted-by-the-Galician-(NW-Spain)-small-scale-fishery.aspx) , proyecto financiado por  el Consejo Internacional para la Exploración del Mar (CIEM) (duración 2014-2015).
+
+[^5]: Iniciativa [*a4a: Assessment for all*](https://fishreg.jrc.ec.europa.eu/web/a4a) de la  Comisión Europea.
