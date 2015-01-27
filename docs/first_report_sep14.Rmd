@@ -20,7 +20,7 @@ The work plan of the project comprises two main aspects:
 ## Research outputs
 The first step of the research was to compile all pieces of information required for the modelling of abundance of the 13 selected exploited species. This work is at its final stage and has been carried out in colaboration with the governmental agency UTPB ("Technical Unit of Artisanal Fisheries", Xunta de Galicia), that is in charge of the monitoring fishery-dependent program (years 1999-2013).
 
-![map](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\map_full.tif)
+![map](D:\\iim-csic\\proyectos\\ICES_CASGASS\\git\\docs\\map_full.jpg)
 
 **Figure 1**. Map of the study area.
 
@@ -29,7 +29,7 @@ The set of species proposed as case study comprises the following: i) a number o
 However, we would like to note that during the kick off meeting (held in Santiago de Compostela on 28th April 2014) we decided to make a few changes in the selected set of species. In particular, we removed *Eutrigla gurnardus* and *Pleuronectes platessa* due to their low rates of captures. Those two species were replaced by two important invertebrates, common octopus (*Octopus vulgaris*) and the common spider crab (*Maja brachydactyla*). In addition,
 the European flounder (*Platychis flessus*) was also added to the final list.
 
-![map2](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\sampling_distribution.jpg)
+![map2](D:\\iim-csic\\proyectos\\ICES_CASGASS\\git\\docs\\sampling_distribution.jpg)
 
 **Figure 2**. Distribution of sampling effort of the UTPB monitoring program across the Galician coastline.
 
@@ -48,20 +48,20 @@ As noted above, standardizing GLMs were first fitted to *Pollachius pollacius*. 
 - Modelling pollack (*Pollachius pollachius*) numbers using a ZINB model (so far...) fitted to ~5.000 records (hauls). Pollack bycatch observed counts from 462 vessels using 4 gears in 1708 days.
 - ZI part of the model, probability that *Yi* is a false zero based on soak depth as explanatory variable.
 
-![pollack1](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\zi_part.jpg)
+![pollack1](D:\\iim-csic\\proyectos\\ICES_CASGASS\\git\\docs\\zi_part.jpg)
 
 **Figure 3**. Probability that *Yi* is a false zero based on soak depth.
 
 - We intruced an offset in the model for standirdizing effort for specific gear type (gillnets in this case): *area of net* x *soak time* 
 - Abundance was related to operational (boat size, crew), temporal (year, day of the year), spatial (latitude, longitude, depth) and environmental variables (upwelling, temperature).
 
-![pollack2](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\nb_part.jpg)
+![pollack2](D:\\iim-csic\\proyectos\\ICES_CASGASS\\git\\docs\\nb_part.jpg)
 
 **Figure 4**. Annual variation of abundance index. Results obtained from fitting a ZINB to the pollack count data.
 
 - Mean weight of individual fish per haul was used to transform abundance trend in biomass trend.
 
-![pollack3](D:\\iim-csic\\proyectos\\ICES_CASGASS\\web\\biomass_part.jpg)
+![pollack3](D:\\iim-csic\\proyectos\\ICES_CASGASS\\git\\docs\\biomass_part.jpg)
 
 **Figure 5**. Annual variation of biomass index.
 
