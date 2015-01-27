@@ -5,7 +5,7 @@ date: ICES ASC September, 2014 A Coruña (Spain)
 output: pdf_document
 ---
 
-![Institutions](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/research_groups.png?raw=true)
+![Institutions](/docs/figs/research_groups.png)
 
 # Project Objectives
 
@@ -20,7 +20,7 @@ The work plan of the project comprises two main aspects:
 ## Research outputs
 The first step of the research was to compile all pieces of information required for the modelling of abundance of the 13 selected exploited species. This work is at its final stage and has been carried out in colaboration with the governmental agency UTPB ("Technical Unit of Artisanal Fisheries", Xunta de Galicia), that is in charge of the monitoring fishery-dependent program (years 1999-2013).
 
-![Map Galicia](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/map_full.png?raw=true)
+![Map Galicia](/docs/figs/map_full.png)
 
 **Figure 1**. Map of the study area.
 
@@ -48,20 +48,20 @@ As noted above, standardizing GLMs were first fitted to *Pollachius pollacius*. 
 - Modelling pollack (*Pollachius pollachius*) numbers using a ZINB model (so far...) fitted to ~5.000 records (hauls). Pollack bycatch observed counts from 462 vessels using 4 gears in 1708 days.
 - ZI part of the model, probability that *Yi* is a false zero based on soak depth as explanatory variable.
 
-![Zero inflated part](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/zi_part.png?raw=true)
+![Zero inflated part](/docs/figs/zi_part.png)
 
 **Figure 3**. Probability that *Yi* is a false zero based on soak depth.
 
 - We intruced an offset in the model for standirdizing effort for specific gear type (gillnets in this case): *area of net* x *soak time* 
 - Abundance was related to operational (boat size, crew), temporal (year, day of the year), spatial (latitude, longitude, depth) and environmental variables (upwelling, temperature).
 
-![Abundance index](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/nb_part.png?raw=true)
+![Abundance index](/docs/figs/nb_part.png)
 
 **Figure 4**. Annual variation of abundance index. Results obtained from fitting a ZINB to the pollack count data.
 
 - Mean weight of individual fish per haul was used to transform abundance trend in biomass trend.
 
-![Biomass index](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/biomass_part.png?raw=true)
+![Biomass index](/docs/figs/biomass_part.png)
 
 **Figure 5**. Annual variation of biomass index.
 

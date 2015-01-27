@@ -7,7 +7,7 @@ output: pdf_document
 
 # CASE STUDIES [CASGASS project][1]
 
-![Small Sacale fishery boat](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/ssf_boat.png?raw=true)
+![Small Sacale fishery boat](/docs/figs/ssf_boat.png)
 
 The set of species proposed as case study comprises the following: i) a number of species requested by the [WGHMM][1] (1) including the seabass (*Dicentrarchus labrax*), the gunnar (*Eutrigla gurnardus*), the plaice (*Pleuronectes platessa*), the pollack (*Pollachius pollachius*), the sole (*Solea vulgaris*), and the red mullet (*Mullus surmuletus*); and ii) a list of six other abundant and valuable species including the white seabream (*Diplodus sargus*), the pouting (*Trisopterus luscus*), the ballan wrasse (*Labrus bergylta*), the european conger (*Conger conger*), the undulate ray (*Raja undulata*), and the small-spotted catshark (*Scyliorhinus canicula*).
 
@@ -15,12 +15,12 @@ However, we would like to note that during the kick off meeting (held in Santiag
 the European flounder (*Platychis flessus*) was also added to the final list.
 
 ## Fin-fish species
-![Fin-fishes](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/finfish.png?raw=true)
+![Fin-fishes](/docs/figs/finfish.png)
 
 From topt left to bottom right: *Pollachius pollachius*, *Trisopterus luscus*, *Labrus bergylta*, *Conger conger*, *Dicentrarchus labrax*, *Diplodus sargus*, *Solea solea*, *Mullus surmuletus*, *Platychis flessus*, *Scyliorhinus canicula* and *Raja undulata*.
 
 ## Invertebrate species
-![Invertebrates](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/invertebrates.png?raw=true)
+![Invertebrates](/docs/figs/invertebrates.png)
 
 *Octopus vulgaris* (Top panel) and *Maja brachydactyla* (Bottom panel)
 

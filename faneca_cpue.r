@@ -33,7 +33,9 @@ library(sp)
 library(gstat)
 library(glmmADMB) 
 library(car)
-library(bbmle) 
+library(bbmle)
+#install.packages("coefplot2",repos="http://www.math.mcmaster.ca/bolker/R",type="source")
+library(coefplot2)
 
 source(file="HighStatLib.r")
 source(file="multiple_ggplot.r")
@@ -70,7 +72,7 @@ pdf(file="C:\\Users\\alex\\Dropbox\\casgass\\gearsPouting.pdf",width=15,height=8
 
 ggplot(data=basic.info,aes(x=gear,y=catch))+
 	geom_bar(stat="identity")+
-	scale_y_continuous(limits=c(0,100),"Frequency")+
+	scale_y_continuous(limits=c(0,60),"Frequency")+
 	scale_x_discrete("Gear")+
 	theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5,size=14),
 		  axis.text.y=element_text(size=14))+
@@ -1387,7 +1389,7 @@ enmalle.zipoiss1<-zeroinfl(Ntot~offset(log(offs1))+
                         dist="poisson",link="logit",data=enmalle.pouting)
 
 summary(enmalle.zipoiss1)
-sum(residuals(enmalle.zipoiss1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zipoiss1)))) # Overdispersed
+sum(residuals(enmalle.zipoiss1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zipoiss1))))
 
 enmalle.zinb1<-zeroinfl(Ntot~offset(log(offs1))+
                        fcrew+GRT+
@@ -1400,20 +1402,39 @@ enmalle.zinb1<-zeroinfl(Ntot~offset(log(offs1))+
                      dist="negbin",link="logit",data=enmalle.pouting)
 
 summary(enmalle.zinb1)
-sum(residuals(enmalle.zinb1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb1))+1)) # Slightly overdispersed
+sum(residuals(enmalle.zinb1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb1))+1))
+
+enmalle.zinbran1 <- glmmadmb(Ntot~fcrew+GRT+
+                            fyear+ns(Julian,2)+
+                            Depth+ns(Julian,2):Depth+
+                            QxM+sstM+
+                            caladoNight+
+                            fZoneO+Seafloor+
+                            offset(Enmalleoffset)+
+                            (1|Idflota), 
+                          data=enmalle.pouting,
+                          zeroInflation=TRUE, 
+                          family="nbinom")
+summary(enmalle.zinbran1)
+sum(residuals(enmalle.zinbran1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinbran1))+1)) 
+Anova(enmalle.zinbran1)
+hist(residuals(enmalle.zinbran1,type="pearson"))
+plot(residuals(enmalle.zinbran1,type="pearson")~log(fitted(enmalle.zinbran1)))
+boxplot(residuals(enmalle.zinbran1,type="pearson")~enmalle.pouting$Idflota)
+abline(0,0,col="red")
 
 #8.4# full model comparison
 
 #8.4.1# AIC/BIC
 
 #AIC
-AICtab(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1,nasa.zipoiss1,nasa.zinb1)
-AICtab(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1)
+AICtab(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1,nasa.zipoiss1,nasa.zinb1,nasa.zinbran1)
+AICtab(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1,enmalle.zinbran1)
 
 #BIC
-nasa.bic=BIC(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1,nasa.zipoiss1,nasa.zinb1)
+nasa.bic=BIC(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1,nasa.zipoiss1,nasa.zinb1,nasa.zinbran1)
 nasa.bic[order(nasa.bic$BIC), ]
-enmalle.bic=BIC(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1)
+enmalle.bic=BIC(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1,enmalle.zinbran1)
 enmalle.bic[order(enmalle.bic$BIC), ]
 
 #8.4.2# overdispersion parameter
@@ -1425,9 +1446,10 @@ nasa.NB=sum(residuals(nasa.negbin1,type="pearson")^2)/(nrow(nasa.pouting)-(lengt
 nasa.MixedNB=sum(residuals(nasa.negbinran1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbinran1))+1)) 
 nasa.ZIpoisson=sum(residuals(nasa.zipoiss1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zipoiss1))))
 nasa.ZINB=sum(residuals(nasa.zinb1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zinb1))+1))
+nasa.MixedZINB=sum(residuals(nasa.zinbran1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zinbran1))+1)) 
 
-nasa.model=c("nasa.GAMpoisson","nasa.GLMpoisson","nasa.NB","nasa.MixedNB","nasa.ZIpoisson","nasa.ZINB")
-nasa.theta=c(nasa.GAMpoisson,nasa.GLMpoisson,nasa.NB,nasa.MixedNB,nasa.ZIpoisson,nasa.ZINB)
+nasa.model=c("nasa.GAMpoisson","nasa.GLMpoisson","nasa.NB","nasa.MixedNB","nasa.ZIpoisson","nasa.ZINB","nasa.MixedZINB")
+nasa.theta=c(nasa.GAMpoisson,nasa.GLMpoisson,nasa.NB,nasa.MixedNB,nasa.ZIpoisson,nasa.ZINB,nasa.MixedZINB)
 nasa.M=data.frame(cbind(nasa.model,nasa.theta))
 nasa.M=nasa.M[order(nasa.M$nasa.theta),]
 
@@ -1438,82 +1460,220 @@ enmalle.NB=sum(residuals(enmalle.negbin1,type="pearson")^2)/(nrow(enmalle.poutin
 enmalle.MixedNB=sum(residuals(enmalle.negbinran1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbinran1))+1)) 
 enmalle.ZIpoisson=sum(residuals(enmalle.zipoiss1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zipoiss1))))
 enmalle.ZINB=sum(residuals(enmalle.zinb1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb1))+1))
+enmalle.MixedZINB=sum(residuals(enmalle.zinbran1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinbran1))+1)) 
 
-enmalle.model=c("enmalle.GAMpoisson","enmalle.GLMpoisson","enmalle.NB","enmalle.MixedNB","enmalle.ZIpoisson","enmalle.ZINB")
-enmalle.theta=c(enmalle.GAMpoisson,enmalle.GLMpoisson,enmalle.NB,enmalle.MixedNB,enmalle.ZIpoisson,enmalle.ZINB)
+enmalle.model=c("enmalle.GAMpoisson","enmalle.GLMpoisson","enmalle.NB","enmalle.MixedNB","enmalle.ZIpoisson","enmalle.ZINB","enmalle.MixedZINB")
+enmalle.theta=c(enmalle.GAMpoisson,enmalle.GLMpoisson,enmalle.NB,enmalle.MixedNB,enmalle.ZIpoisson,enmalle.ZINB,enmalle.MixedZINB)
 enmalle.M=data.frame(cbind(enmalle.model,enmalle.theta))
 enmalle.M=enmalle.M[order(enmalle.M$enmalle.theta),]
 
+coefplot2(nasa.negbinran1)
+coefplot2(enmalle.negbinran1)
+
+###############################################
 # Hurdle modelling (assumption: two step model)
 #we do not considered to include this in the model comparison
 #but we keep it in the code just to see other posibilities
 
-#nasa
-nasa.hurdle1<-hurdle(Ntot~offset(log(offs5))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-                     dist="poisson",link="logit",data=nasa.pouting)
-summary(nasa.hurdle1)
+# nasa
+#nasa.hurdle1<-hurdle(Ntot~offset(log(offs5))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
+#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
+#                     dist="poisson",link="logit",data=nasa.pouting)
+#summary(nasa.hurdle1)
 
-nasa.hurdle2<-hurdle(Ntot~offset(log(offs5))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-                     dist="negbin",link="logit",data=nasa.pouting)
-summary(nasa.hurdle2)
-#nemalle
-enmalle.hurdle1<-hurdle(Ntot~offset(log(offs1))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-                     dist="poisson",link="logit",data=enmalle.pouting)
-summary(enmalle.hurdle1)
+#nasa.hurdle2<-hurdle(Ntot~offset(log(offs5))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
+#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
+#                     dist="negbin",link="logit",data=nasa.pouting)
+#summary(nasa.hurdle2)
 
-enmalle.hurdle2<-hurdle(Ntot~offset(log(offs1))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-                     dist="negbin",link="logit",data=enmalle.pouting)
-summary(enmalle.hurdle2)
+# enmalle
+#enmalle.hurdle1<-hurdle(Ntot~offset(log(offs1))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
+#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
+#                     dist="poisson",link="logit",data=enmalle.pouting)
+#summary(enmalle.hurdle1)
+
+#enmalle.hurdle2<-hurdle(Ntot~offset(log(offs1))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
+#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
+#                     dist="negbin",link="logit",data=enmalle.pouting)
+#summary(enmalle.hurdle2)
+###############################################
+
+#8.5# Selection of predictors
+
+#8.5.1# nasa model selection
+nasa.mixNB1<-glmmadmb(Ntot~fcrew+GRT+
+                        fyear+ns(Julian,2)+
+                        Depth+ns(Julian,2):Depth+
+                        QxM+sstM+
+                        caladoNight+
+                        fZoneO+Seafloor+
+                        offset(Nasaoffset)+
+                        (1|Idflota), 
+                      data=nasa.pouting,
+                      zeroInflation=FALSE, 
+                      family="nbinom")
+summary(nasa.mixNB1)
+Anova(nasa.mixNB1)
+
+# rm ns(Julian,2):Depth
+nasa.mixNB2<-glmmadmb(Ntot~fcrew+GRT+
+                        fyear+ns(Julian,2)+
+                        Depth+
+                        QxM+sstM+
+                        caladoNight+
+                        fZoneO+Seafloor+
+                        offset(Nasaoffset)+
+                        (1|Idflota), 
+                      data=nasa.pouting,
+                      zeroInflation=FALSE, 
+                      family="nbinom")
+summary(nasa.mixNB2)
+Anova(nasa.mixNB2)
+lrtest(nasa.mixNB1,nasa.mixNB2)
+AICtab(nasa.mixNB1,nasa.mixNB2)
+
+# rm GRT
+nasa.mixNB3<-glmmadmb(Ntot~fcrew+
+                        fyear+ns(Julian,2)+
+                        Depth+
+                        QxM+sstM+
+                        caladoNight+
+                        fZoneO+Seafloor+
+                        offset(Nasaoffset)+
+                        (1|Idflota), 
+                      data=nasa.pouting,
+                      zeroInflation=FALSE, 
+                      family="nbinom")
+summary(nasa.mixNB3)
+Anova(nasa.mixNB3)
+lrtest(nasa.mixNB2,nasa.mixNB3)
+AICtab(nasa.mixNB2,nasa.mixNB3)
+
+# rm sstM
+nasa.mixNB4<-glmmadmb(Ntot~fcrew+
+                        fyear+ns(Julian,2)+
+                        Depth+
+                        QxM+
+                        caladoNight+
+                        fZoneO+Seafloor+
+                        offset(Nasaoffset)+
+                        (1|Idflota), 
+                      data=nasa.pouting,
+                      zeroInflation=FALSE, 
+                      family="nbinom")
+summary(nasa.mixNB4)
+Anova(nasa.mixNB4)
+lrtest(nasa.mixNB3,nasa.mixNB4)
+AICtab(nasa.mixNB3,nasa.mixNB4)
+
+# rm fZoneO
+nasa.mixNB5<-glmmadmb(Ntot~fcrew+
+                        fyear+ns(Julian,2)+
+                        Depth+
+                        QxM+
+                        caladoNight+
+                        Seafloor+
+                        offset(Nasaoffset)+
+                        (1|Idflota), 
+                      data=nasa.pouting,
+                      zeroInflation=FALSE, 
+                      family="nbinom")
+summary(nasa.mixNB5)
+Anova(nasa.mixNB5)
+lrtest(nasa.mixNB4,nasa.mixNB5)
+AICtab(nasa.mixNB4,nasa.mixNB5)
+
+# rm QxM
+nasa.mixNB6<-glmmadmb(Ntot~fcrew+
+                        fyear+ns(Julian,2)+
+                        Depth+
+                        caladoNight+
+                        Seafloor+
+                        offset(Nasaoffset)+
+                        (1|Idflota), 
+                      data=nasa.pouting,
+                      zeroInflation=FALSE, 
+                      family="nbinom")
+summary(nasa.mixNB6)
+Anova(nasa.mixNB6)
+lrtest(nasa.mixNB5,nasa.mixNB6)
+AICtab(nasa.mixNB5,nasa.mixNB6)
+
+# rm fcrew
+nasa.mixNB7<-glmmadmb(Ntot~fyear+ns(Julian,2)+
+                        Depth+
+                        caladoNight+
+                        Seafloor+
+                        offset(Nasaoffset)+
+                        (1|Idflota), 
+                      data=nasa.pouting,
+                      zeroInflation=FALSE, 
+                      family="nbinom")
+summary(nasa.mixNB7)
+Anova(nasa.mixNB7)
+lrtest(nasa.mixNB6,nasa.mixNB7)
+AICtab(nasa.mixNB6,nasa.mixNB7)
+
+AICtab(nasa.mixNB1,nasa.mixNB2,nasa.mixNB3,nasa.mixNB4,nasa.mixNB5,nasa.mixNB6,nasa.mixNB7)
+BICtab(nasa.mixNB1,nasa.mixNB2,nasa.mixNB3,nasa.mixNB4,nasa.mixNB5,nasa.mixNB6,nasa.mixNB7)
+
+coefplot2(nasa.mixNB5)
+sum(residuals(nasa.mixNB5,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.mixNB5))+1)) 
+
+#8.5.2# enmalle model selection
+enmalle.mixNB1 <- glmmadmb(Ntot~Gear*Depth+
+                                 fcrew+GRT+
+                                 fyear*fZoneO+
+                                 ns(Julian,3)+
+                                 Depth+ns(Julian,3):Depth+
+                                 QxM+sstM+
+                                 Gear*caladoNight+
+                                 Seafloor+
+                                 offset(Enmalleoffset)+
+                                 (1|Idflota), 
+                               data=enmalle.pouting,
+                               zeroInflation=FALSE, 
+                               family="nbinom")
+summary(enmalle.mixNB1)
+Anova(enmalle.mixNB1)
+
+# rm 
+enmalle.mixNB2 <- glmmadmb(Ntot~Gear*Depth+
+                             fcrew+GRT+
+                             fyear*fZoneO+
+                             ns(Julian,3)+
+                             Depth+ns(Julian,3):Depth+
+                             QxM+sstM+
+                             Gear*caladoNight+
+                             Seafloor+
+                             offset(Enmalleoffset)+
+                             (1|Idflota), 
+                           data=enmalle.pouting,
+                           zeroInflation=FALSE, 
+                           family="nbinom")
+summary(enmalle.mixNB2)
+Anova(enmalle.mixNB2)
+lrtest(enmalle.mixNB1,enmalle.mixNB2)
+AICtab(enmalle.mixNB1,enmalle.mixNB2)
 
 
 
-#8.7# Selection of predictors
 
-zinb2<-zeroinfl(Ntot~offset(log(offs1))+
-				   	 fgear+
-				   	 fcrew+
-				   	 fyear+poly(Julian,2)+
-				   	 lDepth+
-				   	 QxM+sstM+
-				   	 poly(caladoNight,2)+
-				   	 fZoneO+Seafloor |
-				   	 lDepth,
-				   	 dist="negbin",link="logit",data=pollack1)
 
-lrtest(zinb1,zinb2) # Removing of lGRT
 
-zinb3<-zeroinfl(Ntot~offset(log(offs1))+
-				   	 fgear+
-				   	 fcrew+
-				   	 fyear+poly(Julian,2)+
-				   	 lDepth+
-				   	 sstM+
-				   	 poly(caladoNight,2)+
-				   	 fZoneO+Seafloor |
-				   	 lDepth,
-				   	 dist="negbin",link="logit",data=pollack1)
 
-lrtest(zinb2,zinb3) # Removing of QxM
-summary(zinb3)
 
-zinb4<-zeroinfl(Ntot~offset(log(offs1))+
-				   	 fgear+
-				   	 fcrew+
-				   	 fyear+poly(Julian,2)+
-				   	 lDepth+
-				   	 poly(caladoNight,2)+
-				   	 fZoneO+Seafloor |
-				   	 lDepth,
-				   	 dist="negbin",link="logit",data=pollack1)
 
-lrtest(zinb3,zinb4) # Removing of sstM
-summary(zinb4)
+https://rpubs.com/bbolker/glmmchapter
 
-#8.8# Basic model checking
+
+
+
+
+
+
+
+#8.6# Basic model checking
 
 pollack1$residZINB<-residuals(zinb1,type="pearson")
 pollack1$fitZINB<-fitted(zinb1,type="response")
