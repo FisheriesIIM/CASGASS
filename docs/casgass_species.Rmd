@@ -15,12 +15,12 @@ However, we would like to note that during the kick off meeting (held in Santiag
 the European flounder (*Platychis flessus*) was also added to the final list.
 
 ## Fin-fish species
-![Fin-fishes](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/finfish.jpg?raw=true)
+![Fin-fishes](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/finfish.png?raw=true)
 
 From topt left to bottom right: *Pollachius pollachius*, *Trisopterus luscus*, *Labrus bergylta*, *Conger conger*, *Dicentrarchus labrax*, *Diplodus sargus*, *Solea solea*, *Mullus surmuletus*, *Platychis flessus*, *Scyliorhinus canicula* and *Raja undulata*.
 
 ## Invertebrate species
-![Invertebrates](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/invertebrates.jpg?raw=true)
+![Invertebrates](https://github.com/FisheriesIIM/casgass/tree/master/docs/figs/invertebrates.png?raw=true)
 
 *Octopus vulgaris* (Top panel) and *Maja brachydactyla* (Bottom panel)
 
