@@ -4,7 +4,7 @@
 ##########################################################
 
 #Date start: April 2014 by Jaime Otero (bulk of code from pollachius analysis)
-#Last update: 04-02-2015 by Alex Alonso
+#Last update: 17-02-2015 by Alex Alonso
 #many code string were carried out by Jaime Otero during POollachius pollachius analysis
 #input data comes from "preparation_data_base_casgass.R" code that generate faneca.txt file
 #General objective: to analyse variation of catch rates from monitoring program data of UTPB
@@ -33,6 +33,9 @@ library(car)
 library(bbmle)
 #install.packages("coefplot2",repos="http://www.math.mcmaster.ca/bolker/R",type="source")
 library(coefplot2)
+#Joshep M. Hilbe libraries for count data analysis
+library(msme)
+library(COUNT)
 
 source(file="C:\\Users\\alex\\Dropbox\\casgass\\HighStatLib.r")
 source(file="C:\\Users\\alex\\Dropbox\\casgass\\multiple_ggplot.r")
@@ -47,7 +50,7 @@ load("pouting.RData")
 #1# Load species data
 #el código está hecho en base al análisis de pollachius
 #adaptar el código a cada especies
-pouting<-read.table(file="faneca.txt",header=T,dec=".",sep=",")
+pouting<-read.table(file="C:\\Users\\alex\\Dropbox\\casgass\\faneca.txt",header=T,dec=".",sep=",")
 
 head(pouting)
 dim(pouting)
@@ -71,7 +74,9 @@ basic.info$gear<-c("Boliche","Bou de Man","Bou de Vara","Cerco bolo","Liña corde
 	"Nasa patexo","Nasa peixe","Nasa pulpo","Voitron","Palangrillo","Racu",
   "Rastro camaron","Rastro vieira","Trasmallo","Veta","Xeito")
 
-pdf(file="C:\\Users\\alex\\Dropbox\\casgass\\gearsPouting.pdf",width=15,height=8)
+basic.info
+
+pdf(file="gearsPouting.pdf",width=15,height=8)
 
 ggplot(data=basic.info,aes(x=gear,y=catch))+
 	geom_bar(stat="identity")+
@@ -100,6 +105,7 @@ basic.info[order(basic.info$zeros), ]
 # ----------------------------- #
 #3# Select data set that only include the 2 main gears
 pouting1<-pouting[pouting$Gear=="NASA-PEIXES" | pouting$Gear=="VETAS"| pouting$Gear=="MINOS",]
+levels(pouting1$Gear)
 
 head(pouting1)
 dim(pouting1)
@@ -127,6 +133,7 @@ pouting1$fgear<-factor(pouting1$Gear)
 pouting1$fcrew<-factor(ifelse(pouting1$Crew <= 3,1,2)) # Crew as factor
 pouting1$fZoneA<-factor(pouting1$ZoneA)
 pouting1$fZoneO<-factor(pouting1$ZoneO)
+pouting1$Observer<-factor(pouting1$Observer)
 
 #4.2# Gear size
 
@@ -136,6 +143,8 @@ gearSize<-read.csv2(file="C:\\Users\\alex\\Dropbox\\casgass\\dimensiones_artes_p
 
 head(gearSize)
 
+#we are not going to consider trap size as an offset
+#only number of traps per haul
 gearSize1<-gearSize[gearSize$ARTE=="NASA-PEIXES",] # Only nasa-peixe
 gearSize2<-gearSize[gearSize$ARTE=="VETAS",] # Only Vetas
 gearSize3<-gearSize[gearSize$ARTE=="MINOS",] # Only Vetas
@@ -322,7 +331,7 @@ gear6<-lm(Crew~Gear,data=pouting5)
 summary(gear6)
 plot(allEffects(gear6))
 
-gear7<-lm(ZoneA~Gear,data=pouting5)
+gear7<-lm(ZoneO~Gear,data=pouting5)
 summary(gear7)
 plot(allEffects(gear7))
 
@@ -331,7 +340,7 @@ plot(allEffects(gear7))
 
 #5.1# Load upwelling and remove seasonal cycle
 
-qx<-read.csv2(file="Upwelling.csv",header=T,dec=",",sep=",")
+qx<-read.csv2(file="C:\\Users\\alex\\Dropbox\\casgass\\Upwelling.csv",header=T,dec=",",sep=",")
 
 head(qx)
 qx$QX<-qx$QX/1000 # Change scale
@@ -361,7 +370,7 @@ qx$qyAno<-residuals(g2)
 
 #5.2# Load sst and remove seasonal cycle for each zone
 
-sst<-read.table(file="sstGal.selection.txt",header=T,dec=".",sep=" ")
+sst<-read.table(file="C:\\Users\\alex\\Dropbox\\casgass\\sstGal.selection.txt",header=T,dec=".",sep=" ")
 
 head(sst)
 
@@ -445,6 +454,8 @@ oceano<-cbind(qx,sstAnoZ1,sstAnoZ2,sstAnoZ3,sstAnoZ4,sstAnoZ5,
 
 head(oceano)
 
+write.table(oceano,"D:\\iim-csic\\proyectos\\ICES_CASGASS\\analysis\\oceano.txt",col.names = TRUE,sep=",")
+
 #5.4# Calculate mean qx and sst for each pollack haul
 
 #5.4.1# Set up the 'windows' defined as an 'habitat preference indicator'
@@ -522,10 +533,11 @@ for (i in 1:dim(pouting5)[1]) {pouting5$sstM[i]<-
 head(pouting5)
 summary(pouting5)
 
-pouting5<-pouting5[-which(is.na(pouting5$QxM)),]
+#pouting5<-pouting5[-which(is.na(pouting5$QxM)),]
+#no la usaremos por lo que no es necesario retirar los NA
 
 names(pouting5)
-pouting6<-pouting5[,-c(30:38)]
+pouting6<-pouting5[,-c(30:38,40,43)]
 dim(pouting6)
 names(pouting6)
 
@@ -542,12 +554,16 @@ poll.dist<-as.data.frame(table(pouting6$Ntot,pouting6$Gear))
 colnames(poll.dist)<-c("Count","Gear","Freq")
 head(poll.dist)
 
+pouting6$Gear<-relevel(pouting6$Gear,ref="NASA-PEIXES")
+poll.dist$Gear<-relevel(poll.dist$Gear,ref="NASA-PEIXES")
+summary(poll.dist)
+
 pdf(file="respPouting.pdf",width=15,height=6)
 
 ggplot(data=poll.dist,aes(x=Count,y=Freq))+facet_wrap(~Gear,nrow=3,scales="free_y")+
 	geom_bar(stat="identity")+
 	scale_y_continuous("Frequency")+
-	scale_x_discrete("Number of pouting caught per haul")+
+	scale_x_discrete("Number of pouting caught per haul",breaks=seq(0,1915,25))+
 	theme(axis.text.x=element_text(size=7),
 		  axis.text.y=element_text(size=8))
 
@@ -562,11 +578,15 @@ plot(log(Ntot)~log(Wtot),data=pouting6,ylab="Total number",xlab="Total biomass")
 
 #6.1.2# Plots of spatial distribution of effort (m2 of net and fishing hour) 
 
-p1<-ggplot(data=pouting6,aes(x=Lon,y=Lat))
-p1+geom_point(aes(color=Area*Soak))+
+p1<-ggplot(data=pouting6[pouting6$Gear=="MINOS"|pouting6$Gear=="VETAS",],aes(x=Lon,y=Lat))
+p1+geom_point(aes(color=Area))+
 	scale_color_gradient(low="blue",high="red")
-p1+geom_point(aes(color=Vol*Soak))+
+summary(pouting6[pouting6$Gear=="MINOS"|pouting6$Gear=="VETAS",]$Area)
+
+p2<-ggplot(data=pouting6[pouting6$Gear=="NASA-PEIXES",],aes(x=Lon,y=Lat))
+p2+geom_point(aes(color=Pieces))+
   scale_color_gradient(low="blue",high="red")
+summary(pouting6[pouting6$Gear=="NASA-PEIXES",]$Pieces)
 
 #6.1.3# Distribution of cases across explanatory variables
 
@@ -593,58 +613,27 @@ abline(lm(GRT~Crew,data=pouting6),col="red",lwd=2)
 plot(GRT~Area,data=pouting6)
 abline(lm(GRT~Area,data=pouting6),col="red",lwd=2)
 plot(GRT~Soak,data=pouting6)
-abline(lm(GRT~Vol,data=pouting6),col="red",lwd=2)
-plot(GRT~Vol,data=pouting6)
+abline(lm(GRT~Pieces,data=pouting6),col="red",lwd=2)
+plot(GRT~Pieces,data=pouting6)
 abline(lm(GRT~Soak,data=pouting6),col="red",lwd=2)
 plot(Crew~Area,data=pouting6)
 abline(lm(Crew~Area,data=pouting6),col="red",lwd=2)
-plot(Crew~Vol,data=pouting6)
-abline(lm(Crew~Vol,data=pouting6),col="red",lwd=2)
+plot(Crew~Pieces,data=pouting6)
+abline(lm(Crew~Pieces,data=pouting6),col="red",lwd=2)
 plot(Crew~Soak,data=pouting6)
 abline(lm(Crew~Soak,data=pouting6),col="red",lwd=2)
 plot(Area~Soak,data=pouting6)
 abline(lm(Area~Soak,data=pouting6),col="red",lwd=2)
-plot(Vol~Soak,data=pouting6)
-abline(lm(Vol~Soak,data=pouting6),col="red",lwd=2)
+plot(Pieces~Soak,data=pouting6)
+abline(lm(Pieces~Soak,data=pouting6),col="red",lwd=2)
 
 par(mfrow=c(1,3))
 boxplot(Area~fcrew,data=pouting6,notch=T,xlab="Crew",ylab="Area")
 abline(lm(Area~fcrew,data=pouting6),col="red",lwd=2)
-boxplot(Vol~fcrew,data=pouting6,notch=T,xlab="Crew",ylab="Vol")
-abline(lm(Vol~fcrew,data=pouting6),col="red",lwd=2)
+boxplot(Pieces~fcrew,data=pouting6,notch=T,xlab="Crew",ylab="Pieces")
+abline(lm(Pieces~fcrew,data=pouting6),col="red",lwd=2)
 boxplot(Soak~fcrew,data=pouting6,notch=T,xlab="Crew",ylab="Soak time")
 abline(lm(Soak~fcrew,data=pouting6),col="red",lwd=2)
-
-#6.2.2# possible offsets
-
-par(mfrow=c(2,2))
-#two for enmalle
-pouting6$offs1<-pouting6$Area*(pouting6$Soak/60)
-hist(log(pouting6$offs1),xlab="Offset.1",main="",col="grey")
-
-# Offset (num pollack per m2 per h fishing). Considero que al calcular el area
-# de la red en funcion del tamaño y numero de paños que tiene cada arte
-# las artes se igualan y el esfuerzo en cuanto a diferencia entre artes
-# queda ya contemplado, pero no la eficiencia de cada arte. Para ello
-# podemos incluir arte como factor. En cuanto a GRT y crew, al tratarse de
-# artes pasivas no deberian influir mucho, asi que se pueden incluir como
-# explicativas en el modelo (factores o continuas) 
-
-pouting6$offs2<-pouting6$Area
-hist(log(pouting6$offs2),xlab="Offset.2",main="")
-
-# Offset secundario. Consideramos solo el tamaÃ±o de la red y usarÃ­amos el tiempo
-# de calado como variable explicativa
-
-#three for nasa
-pouting6$offs3<-pouting6$Vol*(pouting6$Soak/60)
-hist(log(pouting6$offs3),xlab="Offset.3",main="",col="grey") #m3/h
-
-pouting6$offs4<-pouting6$Vol
-hist(log(pouting6$offs4),xlab="Offset.4",main="")
-
-pouting6$offs5<-pouting6$Pieces*(pouting6$Soak/60)
-hist(log(pouting6$offs5),xlab="Offset.5",main="")
 
 #6.3# Calculation of nighttime fishing
 
@@ -652,7 +641,7 @@ library(lubridate) # Necesaria para obtener horas y minutos de objetos POSIXct
 
 clock.M <- function (t) {hour(t)*60 + minute(t)} # Calcula el minuto entre 1 y 1440 de un dia
 
-pho<-read.csv2(file="Sunrise_set.csv",header=T,dec=".",sep=";")
+pho<-read.csv2(file="C:\\Users\\alex\\Dropbox\\casgass\\Sunrise_set.csv",header=T,dec=".",sep=";")
 
 head(pho)
 pho<-pho[,c(1:3,7:12)] # Nos quedamos con las columnas que interesan
@@ -923,25 +912,29 @@ pouting6$Period<-factor(ifelse(pouting6$caladoNight <= 0.25,2,
 	ifelse(pouting6$caladoNight > 0.25 & pouting6$caladoNight <= 0.75,1,0)))
 
 #6.4 added by Alex Alonso
+
+#we are not work with it
+
 #añadimos una nueva variable indicativa del tamaño promedio de los individuos capturados
 #Wtot/Ntot puede ser utilizada como indicativo de cambios de distribución ontogénicos???
-summary(pouting6$Ntot)
-summary(pouting6$Wtot)
-plot(pouting6$Ntot,pouting6$Wtot)
+#summary(pouting6$Ntot)
+#summary(pouting6$Wtot)
+#plot(pouting6$Ntot,pouting6$Wtot)
 #necesitamos eliminar NA de los datos Wtot para poder calcular esta nueva variable
-pouting6$Wtot<-ifelse(pouting6$Ntot==0,0,pouting6$Wtot)
-par(mfrow=c(1,2))
-dotchart(pouting6$Wtot)
-hist(pouting6$Wtot,breaks=100)
-summary(pouting6$Wtot)
-plot(pouting6$Ntot,pouting6$Wtot)
+#pouting6$Wtot<-ifelse(pouting6$Ntot==0,0,pouting6$Wtot)
+#par(mfrow=c(1,2))
+#dotchart(pouting6$Wtot)
+#hist(pouting6$Wtot,breaks=100)
+#summary(pouting6$Wtot)
+#plot(pouting6$Ntot,pouting6$Wtot)
 #calculamos la relación
-pouting6$AvgSize<-ifelse(pouting6$Ntot==0,0,pouting6$Wtot/pouting6$Ntot)
-hist(pouting6$AvgSize,breaks=100)
-summary(pouting6$AvgSize)
+#pouting6$AvgSize<-ifelse(pouting6$Ntot==0,0,pouting6$Wtot/pouting6$Ntot)
+#hist(pouting6$AvgSize,breaks=100)
+#summary(pouting6$AvgSize)
 #does it make sense 0 values for this variable?
-plot(pouting6$Ntot,pouting6$AvgSize)
-
+#ggplot(data=pouting6,aes(x=AvgSize,y=Ntot))+
+#  geom_point()+
+#  facet_wrap(~Gear,scales="free")
 
 # ----------------------------- #
 #7# Exploratory steps before modelling
@@ -950,106 +943,111 @@ plot(pouting6$Ntot,pouting6$AvgSize)
 
 #likely outlier in enmalle >500
 which(pouting6$Depth>500) # Solo un lance por encima de 200 m (utpb dice que es real; pero no representativo de la pesquería)
-pouting7<-pouting6[pouting6$Depth<500,]
+#pouting7<-pouting6[pouting6$Depth<500,]
+pouting7<-pouting6 #lo dejamos como fuente de falso "0"
+
+pouting7$fgear<-relevel(pouting7$fgear,ref="NASA-PEIXES")
+levels(pouting7$fgear)
+levels(pouting7$Gear)
 
 d1<-ggplot(data=pouting7,aes(x=Crew))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Crew")+
   scale_y_continuous("Density")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   guides(fill=guide_legend(override.aes=list(colour=NULL)))+
   theme(legend.position=c(0.8,0.8),legend.text=element_text(size=8))
 d2<-ggplot(data=pouting7,aes(x=GRT))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("GRT")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d3<-ggplot(data=pouting7,aes(x=Area))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous(expression(paste("Gear area"," ","(",m^2,")")))+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d4<-ggplot(data=pouting7,aes(x=Soak/1440))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Soak time (days)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d5<-ggplot(data=pouting7,aes(x=hLarg/60))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Deployment (Local time)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d6<-ggplot(data=pouting7,aes(x=hVir/60))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Retrieval (Local time)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d7<-ggplot(data=pouting7,aes(x=Julian))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Day of the Year")+
   scale_y_continuous("Density")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d8<-ggplot(data=pouting7,aes(x=Lat))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Latitude (ºN)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d9<-ggplot(data=pouting7,aes(x=Lon))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Longitude (ºW)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d10<-ggplot(data=pouting7,aes(x=Depth))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Depth (m)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d11<-ggplot(data=pouting7,aes(x=QxM))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous(expression(paste("Qx"," ","(",m^3,s^-1,km^-1,") Ã—",10^3)))+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d12<-ggplot(data=pouting7,aes(x=sstM))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("SST (ºC)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   theme(legend.position="none")
 d13<-ggplot(data=pouting7,aes(x=AvgSize))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Individual size (kg)")+
   scale_y_continuous("")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
+  theme(legend.position="none")
+d14<-ggplot(data=pouting7,aes(x=caladoNight))+
+  geom_density(aes(fill=fgear),alpha=0.5)+
+  scale_x_continuous("Night-time soak (%)")+
+  scale_y_continuous("Density")+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
+  guides(fill=guide_legend(override.aes=list(colour=NULL)))+
   theme(legend.position="none")
 
 pdf(file="explPouting.pdf",width=20,height=8)
 
-multiplot(d1,d7,d2,d8,d3,d9,d4,d10,d5,d11,d6,d12,cols=6)
+multiplot(d1,d7,d8,d2,d5,d9,d3,d6,d10,d4,d14,d12,cols=4)
 
 dev.off()
-
-ggplot(data=pouting7,aes(x=caladoNight))+
-  geom_density(aes(fill=fgear),alpha=0.5)+
-  scale_x_continuous("Night-time soak (%)")+
-  scale_y_continuous("Density")+scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
-  guides(fill=guide_legend(override.aes=list(colour=NULL)))+
-  theme(legend.position=c(0.8,0.8),legend.text=element_text(size=8))
 
 ggplot(data=pouting7,aes(x=hLargC))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Corrected deployment time")+
   scale_y_continuous("Density")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   guides(fill=guide_legend(override.aes=list(colour=NULL)))+
   theme(legend.position=c(0.8,0.8),legend.text=element_text(size=8))
 
@@ -1057,7 +1055,7 @@ ggplot(data=pouting7,aes(x=hVirC))+
   geom_density(aes(fill=fgear),alpha=0.5)+
   scale_x_continuous("Corrected retrieval time")+
   scale_y_continuous("Density")+
-  scale_fill_manual(name="Gear",values=c("#3182bd","orange","light blue"),labels=c("Miño","Nasa","Veta"))+
+  scale_fill_manual(name="Gear",values=c("orange","#3182bd","light blue"),labels=c("Nasa","Miño","Veta"))+
   guides(fill=guide_legend(override.aes=list(colour=NULL)))+
   theme(legend.position=c(0.8,0.8),legend.text=element_text(size=8))
 
@@ -1080,14 +1078,17 @@ names(pouting.dat)
 nasa.pouting<-pouting.dat[pouting.dat$Gear=="NASA-PEIXES",]
 dim(nasa.pouting)
 names(nasa.pouting)
-nasa.pouting<-nasa.pouting[,-c(33,38,39,43:48,51:60,62,64)]
+nasa.pouting<-nasa.pouting[,-c(30:32,36:41,44:53,55,57)]
+names(nasa.pouting)
 
 #data base for enmalle
 enmalle.pouting<-pouting.dat[pouting.dat$Gear=="MINOS"|pouting.dat$Gear=="VETAS",]
 dim(enmalle.pouting)
 names(enmalle.pouting)
-enmalle.pouting<-enmalle.pouting[,-c(31,34,40:48,51:60,62,64)]
+enmalle.pouting<-enmalle.pouting[,-c(30,31,36:41,44:53,55,57)]
+names(enmalle.pouting)
 
+#some exploratory plots
 par(mfrow=c(4,4))
 plot(log(Ntot+1)~log(GRT),data=nasa.pouting)
 boxplot(log(Ntot+1)~fcrew,data=nasa.pouting)
@@ -1122,7 +1123,19 @@ hist(enmalle.pouting$Depth,breaks=50)
 hist(enmalle.pouting$QxM,breaks=50)
 hist(enmalle.pouting$sstM,breaks=50)
 
-#7.3# Collinearity
+#7.3# Adding Offset
+
+# nasa
+
+nasa.pouting$OffSet<-nasa.pouting$Pieces*(nasa.pouting$Soak/60)
+summary(nasa.pouting$OffSet);hist(log(nasa.pouting$OffSet),xlab="OffSet",main="")
+
+#enmalle
+
+enmalle.pouting$OffSet<-enmalle.pouting$Area*(enmalle.pouting$Soak/60)
+summary(enmalle.pouting$OffSet);hist(log(enmalle.pouting$OffSet),xlab="OffSet",main="")
+
+#7.4# Collinearity
 
 head(nasa.pouting)
 dim(nasa.pouting)
@@ -1137,11 +1150,10 @@ enmalle.pouting$lGRT<-log(enmalle.pouting$GRT)
 enmalle.pouting$lDepth<-log(enmalle.pouting$Depth)
 
 #VIF
-vifs1<-c("lGRT","Crew","Year","Julian","Depth","QxM","sstM","caladoNight")
-vifs2<-c("lGRT","Crew","Year","Julian","lDepth","QxM","sstM","caladoNight")
+vifs1<-c("lGRT","Crew","Year","Julian","Depth","sstM","caladoNight")
+vifs2<-c("lGRT","Crew","Year","Julian","lDepth","sstM","caladoNight")
 corvif(nasa.pouting[,vifs1])
 corvif(enmalle.pouting[,vifs2])
-
 
 # ----------------------------- #
 #8# Modelling of catches using non-mixed models
@@ -1152,12 +1164,38 @@ nasa.pouting$fyear<-as.factor(nasa.pouting$fyear)
 nasa.pouting$fcrew<-as.factor(nasa.pouting$fcrew)
 nasa.pouting$fZoneA<-as.factor(nasa.pouting$fZoneA)
 nasa.pouting$fZoneO<-as.factor(nasa.pouting$fZoneO)
+nasa.pouting$Observer<-as.factor(nasa.pouting$Observer)
+nasa.pouting$Idflota<-as.factor(nasa.pouting$Idflota)
+nasa.pouting$Idlance<-as.factor(nasa.pouting$Idlance)
+nasa.pouting$Idjornada<-as.factor(nasa.pouting$Idjornada)
+#not well ditributed GRT
+#so we are going to do 3 main classes to avoid extrange patterns in linear response
+# 0-8 / 8-12 / >12
+nasa.pouting$fGRT<-as.factor(ifelse(nasa.pouting$GRT<8,"C8",
+                                    ifelse(nasa.pouting$GRT<12,"C8-12","C12")))
+nasa.pouting$fGRT<-factor(nasa.pouting$fGRT,levels = c("C8", "C8-12", "C12"))
+str(nasa.pouting$fGRT)
+boxplot(Ntot~fGRT,data=nasa.pouting)
 
 names(enmalle.pouting)
 enmalle.pouting$fyear<-as.factor(enmalle.pouting$fyear)
 enmalle.pouting$fcrew<-as.factor(enmalle.pouting$fcrew)
 enmalle.pouting$fZoneA<-as.factor(enmalle.pouting$fZoneA)
 enmalle.pouting$fZoneO<-as.factor(enmalle.pouting$fZoneO)
+enmalle.pouting$Observer<-as.factor(enmalle.pouting$Observer)
+enmalle.pouting$Idflota<-as.factor(enmalle.pouting$Idflota)
+enmalle.pouting$Idlance<-as.factor(enmalle.pouting$Idlance)
+enmalle.pouting$Idjornada<-as.factor(enmalle.pouting$Idjornada)
+#not well ditributed GRT
+#so we are going to do 3 main classes to avoid extrange patterns in linear response
+# 0-8 / 8-12 / >12
+enmalle.pouting$fGRT<-as.factor(ifelse(enmalle.pouting$GRT<5,"C5",
+                                    ifelse(enmalle.pouting$GRT<10,"C5-10",
+                                           ifelse(enmalle.pouting$GRT<15,"C10-15",
+                                                  ifelse(enmalle.pouting$GRT<20,"C15-20","C>20")))))
+enmalle.pouting$fGRT<-factor(enmalle.pouting$fGRT,levels = c("C5", "C5-10", "C10-15","C15-20","C>20"))
+str(enmalle.pouting$fGRT)
+boxplot(Ntot~fGRT,data=enmalle.pouting)
 
 #8.1#NASA modelling
 #para simplificar el cáculo de offset asumimos uniformidad en las nasas y utilizamo el offset5<-nasas*hora
@@ -1175,8 +1213,8 @@ table(nasa.pouting$fZoneO,nasa.pouting$Seafloor)
 table(nasa.pouting$Idflota,nasa.pouting$lGRT) #we will force this variable as linear!!!
 #caladoNight also as linear!!!
 
-nasa.poiss0<-gam(Ntot~offset(log(offs5))+
-                   s(lGRT,k=3)+
+nasa.poiss0<-gam(Ntot~offset(log(OffSet))+
+                   fGRT+
                    fyear+s(Julian,k=6,bs="cc")+
                    s(Depth,k=3)+
                    s(sstM,k=3)+
@@ -1188,14 +1226,24 @@ anova(nasa.poiss0)
 plot(nasa.poiss0,pages=1,all.terms=T,scale=0,shade="T")
 sum(residuals(nasa.poiss0,type="pearson")^2)/nasa.poiss0$df.resid # Overdispersion
 
-#8.1.2# GLM Poisson modelling
+#8.1.2# GAM NegBin modelling
 
-nasa.poiss1<-glm(Ntot~offset(log(offs5))+
-				 lGRT+
-			 	 fyear+poly(Julian,2)+
-			 	 Depth+
-			 	 sstM+
-			 	 caladoNight,
+nasa.negbin0<-gam(Ntot~offset(log(OffSet))+
+                    fGRT+
+                    fyear+s(Julian,k=6,bs="cc")+
+                    s(Depth,k=3)+
+                    s(sstM,k=3)+
+                    s(caladoNight,k=3),
+                  family=nb(),data=nasa.pouting)
+
+summary(nasa.negbin0)
+anova(nasa.negbin0)
+plot(nasa.negbin0,pages=1,all.terms=T,scale=0,shade="T")
+sum(residuals(nasa.negbin0,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin0))+1)) 
+
+#8.1.3# GLM Poisson modelling
+
+nasa.poiss1<-glm(Ntot~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight,
 			 	 family=poisson,data=nasa.pouting)
 
 summary(nasa.poiss1)
@@ -1203,69 +1251,442 @@ Anova(nasa.poiss1)
 plot(allEffects(nasa.poiss1))
 sum(residuals(nasa.poiss1,type="pearson")^2)/nasa.poiss1$df.resid # Overdispersion
 
-#8.1.3# Negative Binomial modelling
+#8.1.4# Negative Binomial modelling
 
-nasa.negbin1<-glm.nb(Ntot~offset(log(offs5))+
-                       lGRT+
-                       fyear+poly(Julian,2)+
-                       Depth+
-                       sstM+
-                       caladoNight,
+#indirect parametrization GLM.NB
+nasa.negbin1<-glm.nb(Ntot~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight,
                      data=nasa.pouting)
 
 summary(nasa.negbin1)
 Anova(nasa.negbin1)
 plot(allEffects(nasa.negbin1))
-par(mfrow=c(1,3))
-hist(residuals(nasa.negbin1,type="deviance"))
-plot(residuals(nasa.negbin1,type="deviance")~log(fitted(nasa.negbin1)))
-boxplot(residuals(nasa.negbin1,type="deviance")~nasa.pouting$Idflota)
-abline(0,0,col="red")
 sum(residuals(nasa.negbin1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin1))+1))
 
-#8.1.3.1. Mixed model NB
+#direct parametrization (Joseph M. HILBE)
+#http://cran.r-project.org/web/packages/msme/msme.pdf
+#http://cran.r-project.org/web/packages/COUNT/COUNT.pdf
+#https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=10&cad=rja&uact=8&ved=0CG4QFjAJ&url=http%3A%2F%2Fwww.cambridge.org%2Fch%2Fdownload_file%2F846106%2F&ei=xofbVOLSA4WBU82HgbAC&usg=AFQjCNEGGL69wK3m3m5Q7K8tN5ZHljTFFQ&sig2=42OpyYD42s7ju9B2OPcdNw
 
+OFFSET<-nasa.pouting$OffSet
+
+# TRADITIONAL NB REGRESSION WITH ALPHA
+# do not pay attention to warnings()
+
+nasa.negbin2<-nbinomial(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight,
+                        formula2 = ~ 1,
+                        data=nasa.pouting,offset=log(OFFSET),family = "nb2",mean.link = "log",scale.link = "inverse_s")
+#the same as
+#nasa.negbin2<-nbinomial(Ntot~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+poly(Depth,2)+sstM+caladoNight,
+#                        formula2 = ~ 1,
+#                        family = "nb2",mean.link = "log",scale.link = "inverse_s",data=nasa.pouting)
+
+summary(nasa.negbin2)
+sum(residuals(nasa.negbin2,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin2))+1))
+#dispersion statistics diferent to calculated with pearson residuals (teh one provided in the summary)
+
+#TRADITIONAL NB REGRESSION with DISPERSION PARAMETERIZED
+
+nasa.negbin3<-nbinomial(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight,
+                        formula2 = ~ fyear+Depth,
+                        family = "nb2",mean.link = "log",scale.link = "inverse_s",offset=log(OFFSET),data=nasa.pouting)
+
+summary(nasa.negbin3)
+sum(residuals(nasa.negbin3,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin3))+1))
+
+# R GLM.NB-TYPE INVERTED DISPERSON --THETA ; WITH DEFAULTS
+
+nasa.negbin4 <-nbinomial(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight,
+                         formula2 = ~ 1,
+                         data = nasa.pouting,offset=log(OFFSET),family = "negBinomial",mean.link = "log",scale.link = "log_s")
+
+summary(nasa.negbin4)
+sum(residuals(nasa.negbin4,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin4))+1))
+
+# HETEROGENEOUS NB; DISPERSION PARAMETERIZED
+
+nasa.negbin5 <- nbinomial(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight,
+                   formula2 = ~ fyear+Depth,
+                   data = nasa.pouting,offset=log(OFFSET),family = "negBinomial",mean.link = "log",scale.link = "log_s")
+
+summary(nasa.negbin5)
+sum(residuals(nasa.negbin5,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin5))+1))
+
+#GLMMADMB
+
+nasa.pouting$Nasaoffset<-log(nasa.pouting$OffSet)
+
+#negative binomial (log): "nbinom", "nbinom1" (negative binomial "type 1": see Details), "nbinom2" (a synonym for "nbinom")
+
+#nbinom
+nasa.negbin6 <- glmmadmb(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight+offset(log(OffSet)),
+                         data=nasa.pouting,zeroInflation=FALSE,family="nbinom")
+
+summary(nasa.negbin6)
+Anova(nasa.negbin6)
+sum(residuals(nasa.negbin6,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin6))+1)) 
+
+#type 1
+nasa.negbin7 <- glmmadmb(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight+offset(log(OffSet)),
+                         data=nasa.pouting, zeroInflation=FALSE,family="nbinom1")
+
+summary(nasa.negbin7)
+Anova(nasa.negbin7)
+sum(residuals(nasa.negbin7,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin7))+1)) 
+
+#comparing NG parametrizations
+
+coef(nasa.negbin1)
+coef(nasa.negbin2)
+coef(nasa.negbin3)
+coef(nasa.negbin4)
+coef(nasa.negbin5)
+coef(nasa.negbin6)
+coef(nasa.negbin7)
+
+modelfit(nasa.negbin1)
+modelfit(nasa.negbin2)
+modelfit(nasa.negbin3)
+modelfit(nasa.negbin4)
+modelfit(nasa.negbin5)
+
+AICNB<-data.frame(cbind(c("nb1","nb2","nb3","nb4","nb5","nb6","nb7"),
+                        as.numeric(c(AIC(nasa.negbin1),nasa.negbin2$aic,nasa.negbin3$aic,nasa.negbin4$aic,nasa.negbin5$aic,AIC(nasa.negbin6),AIC(nasa.negbin7)))))
+DispNB<-data.frame(c(sum(residuals(nasa.negbin1,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin1))+1)),
+                     sum(residuals(nasa.negbin2,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin2))+1)),
+                     sum(residuals(nasa.negbin3,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin3))+1)),
+                     sum(residuals(nasa.negbin4,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin4))+1)),
+                     sum(residuals(nasa.negbin5,type="deviance")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin5))+1)),
+                     sum(residuals(nasa.negbin6,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin6))+1)),
+                     sum(residuals(nasa.negbin7,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin7))+1))))
+
+compMNB<-data.frame(cbind(AICNB,DispNB))
+colnames(compMNB)<-c("Model","AIC","Dispersion")
+compMNB$AIC<-round(as.numeric(levels(compMNB$AIC))[compMNB$AIC],digits = 2)
+compMNB
+
+nb1<-data.frame(list(summary(nasa.negbin1)$coefficients)[[1]])
+nb1<-data.frame(cbind(nb1,confint(nasa.negbin1)))
+nb1$Coef<-rownames(nb1)
+colnames(nb1)<-c("Estimate","SE","Z","p","LCL","UCL","Coef")
+nb1$Mod<-"glm.nb"
+dim(nb1)
+nb2<-list(summary(nasa.negbin2)$coefficients)[[1]]
+nb2$Coef<-rownames(nb2)
+nb2<-nb2[c(1:14),]
+nb2$Mod<-"nb2"
+dim(nb2)
+nb3<-list(summary(nasa.negbin3)$coefficients)[[1]]
+nb3$Coef<-rownames(nb3)
+nb3$Mod<-"nb2-Mdisp"
+nb3<-nb3[c(1:14),]
+dim(nb3)
+nb4<-list(summary(nasa.negbin4)$coefficients)[[1]]
+nb4$Coef<-rownames(nb4)
+nb4$Mod<-"negBinomial"
+nb4<-nb4[c(1:14),]
+dim(nb4)
+nb5<-list(summary(nasa.negbin5)$coefficients)[[1]]
+nb5$Coef<-rownames(nb5)
+nb5$Mod<-"negBinomial-Mdisp"
+nb5<-nb5[c(1:14),]
+dim(nb5)
+nb6<-data.frame(list(summary(nasa.negbin6)$coefficients)[[1]])
+nb6<-data.frame(cbind(nb6,confint(nasa.negbin6)))
+nb6$Coef<-rownames(nb6)
+colnames(nb6)<-c("Estimate","SE","Z","p","LCL","UCL","Coef")
+nb6$Mod<-"ADMB-nbinom"
+dim(nb6)
+nb7<-data.frame(list(summary(nasa.negbin7)$coefficients)[[1]])
+nb7<-data.frame(cbind(nb7,confint(nasa.negbin7)))
+nb7$Coef<-rownames(nb7)
+colnames(nb7)<-c("Estimate","SE","Z","p","LCL","UCL","Coef")
+nb7$Mod<-"ADMB-type1"
+dim(nb7)
+
+NbComp<-data.frame(rbind(nb1,nb2,nb3,nb4,nb5,nb6,nb7))
+str(NbComp)
+
+pdf(file="NBpouting-coef.pdf",width=15,height=8)
+
+limits <- aes(ymax =  UCL, ymin= LCL)
+ggplot(data=NbComp,aes(x=Mod,y=Estimate))+
+  geom_errorbar(limits, colour="blue", width=0)+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3,col="blue")+
+  geom_hline(aes(yintercept=0),col="red")+
+  scale_y_continuous("Estimate")+
+  scale_x_discrete("NB Model")+
+  facet_wrap(~Coef,scales="free_y", ncol = 5)+
+  ggtitle("NegBin Parametrization")+
+  theme(plot.title = element_text(size=26, face="bold"),axis.text.x=element_text(angle=-45, hjust = 0))
+
+dev.off()
+
+gdnb1<-data.frame(cbind(residuals(nasa.negbin1,type="deviance"),fitted(nasa.negbin1),nasa.pouting$Idflota))
+colnames(gdnb1)<-c("Residuals","Fitted","Boat")
+gdnb1$Mod<-"glm.nb"
+gdnb1$Boat<-factor(as.numeric(gdnb1$Boat))
+dim(gdnb1)
+
+gdnb2<-data.frame(cbind(residuals(nasa.negbin2,type="deviance"),fitted(nasa.negbin2),nasa.pouting$Idflota))
+colnames(gdnb2)<-c("Residuals","Fitted","Boat")
+gdnb2$Mod<-"nb2"
+gdnb2$Boat<-factor(as.numeric(gdnb2$Boat))
+dim(gdnb2)
+
+gdnb3<-data.frame(cbind(residuals(nasa.negbin3,type="deviance"),fitted(nasa.negbin3),nasa.pouting$Idflota))
+colnames(gdnb3)<-c("Residuals","Fitted","Boat")
+gdnb3$Mod<-"nb2-Mdisp"
+gdnb3$Boat<-factor(as.numeric(gdnb3$Boat))
+dim(gdnb3)
+
+gdnb4<-data.frame(cbind(residuals(nasa.negbin4,type="deviance"),fitted(nasa.negbin4),nasa.pouting$Idflota))
+colnames(gdnb4)<-c("Residuals","Fitted","Boat")
+gdnb4$Mod<-"negBinomial"
+gdnb4$Boat<-factor(as.numeric(gdnb4$Boat))
+dim(gdnb4)
+
+gdnb5<-data.frame(cbind(residuals(nasa.negbin5,type="deviance"),fitted(nasa.negbin5),nasa.pouting$Idflota))
+colnames(gdnb5)<-c("Residuals","Fitted","Boat")
+gdnb5$Mod<-"negBinomial-Mdisp"
+gdnb5$Boat<-factor(as.numeric(gdnb5$Boat))
+dim(gdnb5)
+
+gdnb6<-data.frame(cbind(residuals(nasa.negbin6,type="pearson"),fitted(nasa.negbin6),nasa.pouting$Idflota))
+colnames(gdnb6)<-c("Residuals","Fitted","Boat")
+gdnb6$Mod<-"ADMB-nbinom"
+gdnb6$Boat<-factor(as.numeric(gdnb6$Boat))
+dim(gdnb6)
+
+gdnb7<-data.frame(cbind(residuals(nasa.negbin7,type="pearson"),fitted(nasa.negbin7),nasa.pouting$Idflota))
+colnames(gdnb7)<-c("Residuals","Fitted","Boat")
+gdnb7$Mod<-"ADMB-type1"
+gdnb7$Boat<-factor(as.numeric(gdnb7$Boat))
+dim(gdnb7)
+
+gdnb<-data.frame(rbind(gdnb1,gdnb2,gdnb3,gdnb4,gdnb5,gdnb6,gdnb7))
+str(gdnb)
+gdnb$Lfit<-log(gdnb$Fitted)
+
+pdf(file="NBpouting-histres.pdf",width=12,height=8)
+
+ggplot(gdnb, aes(x=Residuals))+
+  geom_histogram(binwidth = 0.2,aes(fill = ..count..))+
+  scale_fill_gradient("Count", low = "green", high = "red") +
+  geom_vline(aes(xintercept=0),col="black")+
+  facet_wrap(~Mod,scales="free", ncol = 4)
+
+dev.off()
+
+ggplot(gdnb, aes(y=Residuals,x=Fitted,colour=Residuals)) + 
+  geom_point(size=3)+
+  scale_colour_gradient(limits=c(-5, 5),low="green", high="red")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("Fitted")+
+  facet_wrap(~Mod,scales="free", ncol = 4)
+
+#fitted log-transformed
+
+pdf(file="NBpouting-fitres.pdf",width=12,height=8)
+
+ggplot(gdnb, aes(y=Residuals,x=Lfit,colour=Residuals)) + 
+  geom_point(size=3)+
+  scale_colour_gradient(limits=c(-4.5, 4.5),low="green", high="red")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("log(Fitted)")+
+  facet_wrap(~Mod,scales="free", ncol = 4)
+
+dev.off()
+
+pdf(file="NBpouting-resmixed.pdf",width=12,height=8)
+
+ggplot(gdnb, aes(x=factor(Boat), y=Residuals))+
+  geom_boxplot(col="gray50",fill="gray75")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_discrete("Boat")+
+  facet_wrap(~Mod,scales="free", ncol = 4)
+
+dev.off()
+
+#best soluction
+#nasa.negbin3 has the best AIC but we prefer the simpler solution based on dispersion statistics
+
+nasa.negbin1
+summary(nasa.negbin1)
+
+#8.1.5 Mixed model NB
 #http://glmmadmb.r-forge.r-project.org/glmmADMB.html
 #https://rpubs.com/bbolker/glmmchapter
 
-nasa.pouting$Idflota<-as.factor(nasa.pouting$Idflota)
-nasa.pouting$Nasaoffset<-log(nasa.pouting$offs5)
+nasa.negbinm1 <- glmmadmb(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight+offset(log(OffSet))+(1|Idflota), 
+                            data=nasa.pouting,zeroInflation=FALSE,family="nbinom")
+summary(nasa.negbinm1)
+Anova(nasa.negbinm1)
+sum(residuals(nasa.negbinm1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbinm1))+1))
+#no mejoramos la sobredispersión
 
-nasa.negbinran1 <- glmmadmb(Ntot~lGRT+
-                              fyear+poly(Julian,2)+
-                              Depth+
-                              sstM+
-                              caladoNight+
-                              offset(Nasaoffset)+
-                              (1|Idflota), 
-                            data=nasa.pouting,
-                         zeroInflation=FALSE, 
-                         family="nbinom")
-summary(nasa.negbinran1)
-Anova(nasa.negbinran1)
-sum(residuals(nasa.negbinran1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbinran1))+1)) 
 par(mfrow=c(1,3))
-hist(residuals(nasa.negbinran1,type="pearson"))
-plot(residuals(nasa.negbinran1,type="pearson")~log(fitted(nasa.negbinran1)))
-boxplot(residuals(nasa.negbinran1,type="pearson")~nasa.pouting$Idflota)
+hist(residuals(nasa.negbinm1,type="pearson"))
+plot(residuals(nasa.negbinm1,type="pearson")~log(fitted(nasa.negbinm1)))
+boxplot(residuals(nasa.negbinm1,type="pearson")~nasa.pouting$Idflota)
 abline(0,0,col="red")
 
-#8.1.4# comparing model approaches
+#8.1.6# ZI
+#exploring binomial 
 
-AICtab(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1)
-BICtab(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1)
+nasa.pouting$binNtot<-ifelse(nasa.pouting$Ntot==0,0,1)
 
-#mejoramos el modelo con los random effects, what shall we do?
-#el efecto barco está recogiendo algo de variabilidad
+nasa.bin<-glm(binNtot~lGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight,
+                 family=binomial,data=nasa.pouting)
+summary(nasa.bin)
+anova(nasa.bin)
+plot(allEffects(nasa.bin))
+#no clear patterns
+
+#8.1.6.1# ZIpoisson
+nasa.zipoiss1<-zeroinfl(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight+offset(log(OffSet))|1,
+                           dist="poisson",link="logit",data=nasa.pouting)
+
+summary(nasa.zipoiss1)
+sum(residuals(nasa.zipoiss1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zipoiss1))))
+
+#8.1.6.2# ZINB
+nasa.zinb1<-zeroinfl(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight+offset(log(OffSet))|1,
+                        dist="negbin",link="logit",data=nasa.pouting)
+
+summary(nasa.zinb1)
+sum(residuals(nasa.zinb1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zinb1))+1))
+
+#glmmadmb does not allow to include explanmatory variables in ZI part
+nasa.zinbm1 <- glmmadmb(Ntot~fGRT+fyear+poly(Julian,2)+Depth+sstM+caladoNight+offset(log(OffSet))+(1|Idflota), 
+                             data=nasa.pouting,zeroInflation=TRUE,family="nbinom")
+
+summary(nasa.zinbm1)
+sum(residuals(nasa.zinbm1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zinbm1))+1))
+#even worse
+
+#8.1.7# full model comparison
+# Comparison of models (just some tools, more could be added, see Potts & Elith 2006)
+
+#8.1.7.1# AIC/BIC
+
+AICtab(nasa.poiss0,nasa.poiss1,nasa.negbin0,nasa.negbin1,nasa.negbinm1,nasa.zipoiss1,nasa.zinb1,nasa.zinbm1)
+
+nasa.aic=AIC(nasa.poiss0,nasa.poiss1,nasa.negbin0,nasa.negbin1,nasa.negbinm1,nasa.zipoiss1,nasa.zinb1,nasa.zinbm1,k=2)
+nasa.aic[order(nasa.bic$AIC), ]
+nasa.bic=AIC(nasa.poiss0,nasa.poiss1,nasa.negbin0,nasa.negbin1,nasa.negbinm1,nasa.zipoiss1,nasa.zinb1,nasa.zinbm1,k=log(dim(nasa.pouting)[1]))
+nasa.bic[order(nasa.bic$AIC), ]
+
+#8.1.7.2# overdispersion parameter
+#If the dispersion parameter is significantly greater than one, indicating overdispersion (variance greater than the mean),
+#then the scale parameter should be used to adjust the variance.  
+#Failing to account for the overdispersion can result in inflated test statistics. 
+#However, when the dispersion parameter is less than one, then the test statistics become more conservative,
+#which is not considered as much of a problem.
+
+nasa.disp<-data.frame(cbind(c("nasa.poiss0","nasa.poiss1","nasa.negbin0","nasa.negbin1","nasa.negbinm1","nasa.zipoiss1","nasa.zinb1","nasa.zinbm1"),
+                      c(sum(residuals(nasa.poiss0,type="pearson")^2)/nasa.poiss0$df.resid,
+                        sum(residuals(nasa.poiss1,type="pearson")^2)/nasa.poiss1$df.resid,
+                        sum(residuals(nasa.negbin0,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin0))+1)),
+                        sum(residuals(nasa.negbin1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin1))+1)),
+                        sum(residuals(nasa.negbinm1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbinm1))+1)),
+                        sum(residuals(nasa.zipoiss1,type="pearson")^2)/nasa.zipoiss1$df.resid,
+                        sum(residuals(nasa.zinb1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zinb1))+1)),
+                        sum(residuals(nasa.zinbm1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.zinbm1))+1)))))
+colnames(nasa.disp)<-c("Model","Dispersion")
+nasa.disp$Dispersion<-round(as.numeric(levels(nasa.disp$Dispersion))[nasa.disp$Dispersion],digits = 3)
+nasa.disp[order(nasa.disp$Dispersion),]
+#sobredispersión un tanto elevada
+
+#8.1.7.3# loglikelihood
+
+fm.nasa<-list("nasa.poiss0"=nasa.poiss0,
+               "nasa.poiss1"=nasa.poiss1,
+               "nasa.negbin0"=nasa.negbin0,
+               "nasa.negbin1"=nasa.negbin1,
+               "nasa.negbinm1"=nasa.negbinm1,
+               "nasa.zipoiss1"=nasa.zipoiss1,
+               "nasa.zinb1"=nasa.zinb1,
+               "nasa.zinbm1"=nasa.zinbm1)
+
+logliks.nasa<-data.frame(cbind(c("nasa.poiss0","nasa.poiss1","nasa.negbin0","nasa.negbin1","nasa.negbinm1","nasa.zipoiss1","nasa.zinb1","nasa.zinbm1"),
+                    logLik=sapply(fm.nasa,function (x) round(logLik(x),digits=0)),
+                     Df=sapply(fm.nasa,function (x) attr(logLik(x),"df"))))
+colnames(logliks.nasa)<-c("Model","logLik","DF")
+logliks.nasa$logLik<-round(as.numeric(levels(logliks.nasa$logLik))[logliks.nasa$logLik],digits = 0)
+logliks.nasa$DF<-round(as.numeric(levels(logliks.nasa$DF))[logliks.nasa$DF],digits = 2)
+logliks.nasa[order(-logliks.nasa$logLik),]
+
+#8.1.7.4# Vuong test to compare NB vs ZINB
+# do not run with random models
+
+vuong(nasa.zinb1,nasa.negbin1)
+#mejor NB
+
+#8.1.7.5# Predicting probabilities
+
+#no mixed models neither gams included in this comparison
+phat.pois.nasa<-predprob(nasa.poiss1)
+phat.pois.mn.nasa<-apply(phat.pois.nasa,2,mean)
+phat.nb.nasa<-predprob(nasa.negbin1)
+phat.nb.mn.nasa<-apply(phat.nb.nasa,2,mean)
+phat.zipoiss.nasa<-predprob(nasa.zipoiss1)
+phat.zipoiss.mn.nasa<-apply(phat.zipoiss.nasa,2,mean)
+phat.zinb.nasa<-predprob(nasa.zinb1)
+phat.zinb.mn.nasa<-apply(phat.zinb.nasa,2,mean)
+
+with(nasa.pouting,{
+  hist(Ntot,prob=TRUE,col="grey",breaks=seq(-0.5,246,2),xlab="",main="")
+  lines(x=seq(0,245,1),y=phat.zipoiss.mn.nasa,type="l",lwd=2,col="green")
+  lines(x=seq(0,245,1),y=phat.zinb.mn.nasa,type="l",lwd=2,col="yellow")
+  lines(x=seq(0,245,1),y=phat.pois.mn.nasa,type="l",lwd=2,col="red")
+  lines(x=seq(0,245,1),y=phat.nb.mn.nasa,type="l",lwd=2,col="blue")
+})
+
+#8.1.7.6# Comparison of models (just some tools, more could be added, see Potts & Elith 2006)
+
+nasa.aic
+nasa.bic
+logliks.nasa
+logliks.nasa2<-rbind(logLik=sapply(fm.nasa,function (x) round(logLik(x),digits=0)),
+                     Df=sapply(fm.nasa,function (x) attr(logLik(x),"df")))
+
+zeroes.nasa<-c("Obs"=sum(nasa.pouting$Ntot<1),
+                     "nasa.poiss0"=sum(dpois(0,fitted(nasa.poiss0))),
+                     "nasa.poiss1"=sum(dpois(0,fitted(nasa.poiss1))),
+                     "nasa.negbin0"="NA",
+                     "nasa.negbin1"=sum(dnbinom(0,mu=fitted(nasa.negbin1),size=nasa.negbin1$theta)),
+                     "nasa.negbinm1"="NA",
+                     "nasa.zipoiss1"=sum(predict(nasa.zipoiss1,type="prob")[,1]),
+                     "nasa.zinb1"=sum(predict(nasa.zinb1,type="prob")[,1]),
+                     "nasa.zinbm1"="NA")
+
+modelsComp.nasa<-data.frame(cbind(logliks.nasa2[c(2,4,6,8,10,12,14,16)],nasa.bic[[2]],nasa.aic[[2]],logliks.nasa2[c(1,3,5,7,9,11,13,15)],zeroes.nasa[2:9]))
+colnames(modelsComp.nasa)<-c("Df","BIC","AIC","logLik",paste("Zeroes (Obs=",zeroes.nasa[[1]],")"))
+modelsComp.nasa$Df<-round(as.numeric(levels(modelsComp.nasa$Df))[modelsComp.nasa$Df],digits = 2)
+modelsComp.nasa$BIC<-round(as.numeric(levels(modelsComp.nasa$BIC))[modelsComp.nasa$BIC],digits = 2)
+modelsComp.nasa$AIC<-round(as.numeric(levels(modelsComp.nasa$AIC))[modelsComp.nasa$AIC],digits = 2)
+modelsComp.nasa$logLik<-round(as.numeric(levels(modelsComp.nasa$logLik))[modelsComp.nasa$logLik],digits = 0)
+modelsComp.nasa$Zeroes<-round(as.numeric(levels(modelsComp.nasa$Zeroes))[modelsComp.nasa$Zeroes],digits = 4)
+modelsComp.nasa$deltaAIC<-round(modelsComp.nasa$AIC-min(modelsComp.nasa$AIC),2)
+modelsComp.nasa$deltaBIC<-round(modelsComp.nasa$BIC-min(modelsComp.nasa$BIC),2)
+modelsComp.nasa$ModLikelihood<-round(exp(-modelsComp.nasa$deltaAIC/2),2)
+modelsComp.nasa$AICweight<-round(modelsComp.nasa$ModLikelihood/sum(modelsComp.nasa$ModLikelihood),2)
+modelsComp.nasa<-modelsComp.nasa[order(modelsComp.nasa$deltaAIC),]
+modelsComp.nasa
 
 #8.2#ENMALLE modelling
 
 #8.2.1# GAM Poisson modelling
 
-enmalle.poiss0<-gam(Ntot~offset(log(offs1))+
-                      s(lGRT,by=Gear,k=3)+
-                      fyear*fZoneO+
-                      s(Julian,k=6,bs="cc")+
+names(enmalle.pouting)
+
+enmalle.poiss0<-gam(Ntot~offset(log(OffSet))+
+                      fGRT*Gear+
+                      fyear*fZoneO+s(Julian,k=6,bs="cc")+
                       s(lDepth,by=Gear,k=3)+
                       s(sstM,k=3)+
                       s(caladoNight,by=Gear,k=3)+
@@ -1277,15 +1698,31 @@ anova(enmalle.poiss0)
 plot(enmalle.poiss0,pages=1,all.terms=T,scale=0,shade="T")
 sum(residuals(enmalle.poiss0,type="pearson")^2)/enmalle.poiss0$df.resid # Overdispersion
 
-#8.2.2# GLM Poisson modelling
+#8.2.2# GAM NegBin modelling
+enmalle.negbin0<-gam(Ntot~offset(log(OffSet))+
+                      fGRT*Gear+
+                      fyear*fZoneO+
+                      s(Julian,k=6,bs="cc")+
+                      s(lDepth,by=Gear,k=3)+
+                      s(sstM,k=3)+
+                      s(caladoNight,by=Gear,k=3)+
+                      Seafloor,
+                     family=nb(),data=enmalle.pouting)
 
-enmalle.poiss1<-glm(Ntot~offset(log(offs1))+
-                      Gear*lGRT+
+summary(enmalle.negbin0)
+anova(enmalle.negbin0)
+plot(enmalle.negbin0,pages=1,all.terms=T,scale=0,shade="T")
+sum(residuals(enmalle.negbin0,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbin0))+1)) # Overdispersion
+
+#8.2.3# GLM Poisson modelling
+
+enmalle.poiss1<-glm(Ntot~offset(log(OffSet))+
+                      Gear*fGRT+
                       fyear*fZoneO+
                       poly(Julian,2)+
-                      Gear*lDepth+
+                      lDepth*Gear+
                       sstM+
-                      Gear*caladoNight+
+                      caladoNight*Gear+
                       Seafloor,
                  family=poisson,data=enmalle.pouting)
 
@@ -1294,379 +1731,311 @@ Anova(enmalle.poiss1)
 plot(allEffects(enmalle.poiss1))
 sum(residuals(enmalle.poiss1,type="pearson")^2)/enmalle.poiss1$df.resid # Overdispersion
 
-#8.2.3# Negative Binomial modelling
+#8.2.4# Negative Binomial modelling
 
-enmalle.negbin1<-glm.nb(Ntot~offset(log(offs1))+
-                          Gear*lGRT+
+enmalle.negbin1<-glm.nb(Ntot~offset(log(OffSet))+
+                          Gear*fGRT+
                           fyear*fZoneO+
                           poly(Julian,2)+
-                          Gear*lDepth+
+                          lDepth*Gear+
                           sstM+
-                          Gear*caladoNight+
+                          caladoNight*Gear+
                           Seafloor,
                         data=enmalle.pouting)
 
 summary(enmalle.negbin1)
 Anova(enmalle.negbin1)
 plot(allEffects(enmalle.negbin1))
-par(mfrow=c(1,3))
-hist(residuals(enmalle.negbin1,type="deviance"))
-plot(residuals(enmalle.negbin1,type="deviance")~log(fitted(enmalle.negbin1)))
-boxplot(residuals(enmalle.negbin1,type="deviance")~enmalle.pouting$Idflota)
-abline(0,0,col="red")
 sum(residuals(enmalle.negbin1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbin1))+1)) 
 
-#8.2.3.1. Mixed model NB
+#8.2.5# Mixed model NB
 
-#http://glmmadmb.r-forge.r-project.org/glmmADMB.html
-
-enmalle.pouting$Idflota<-as.factor(enmalle.pouting$Idflota)
-enmalle.pouting$Enmalleoffset<-log(enmalle.pouting$offs1)
-
-enmalle.negbinran1 <- glmmadmb(Ntot~Gear*lGRT+
+enmalle.negbinm1 <- glmmadmb(Ntot~Gear*fGRT+
                                  fyear*fZoneO+
                                  poly(Julian,2)+
-                                 Gear*lDepth+
+                                 lDepth*Gear+
                                  sstM+
-                                 Gear*caladoNight+
+                                 caladoNight*Gear+
                                  Seafloor+
-                                 offset(Enmalleoffset)+
+                                 offset(log(OffSet))+
                                  (1|Idflota),
                                data=enmalle.pouting,
                                zeroInflation=FALSE,
                                family="nbinom")
-summary(enmalle.negbinran1)
-Anova(enmalle.negbinran1)
+summary(enmalle.negbinm1)
+Anova(enmalle.negbinm1)
+sum(residuals(enmalle.negbinm1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbinm1))+1)) 
+
 par(mfrow=c(1,3))
-hist(residuals(enmalle.negbinran1,type="pearson"))
-plot(residuals(enmalle.negbinran1,type="pearson")~log(fitted(enmalle.negbinran1)))
-boxplot(residuals(enmalle.negbinran1,type="pearson")~enmalle.pouting$Idflota)
+hist(residuals(enmalle.negbinm1,type="pearson"))
+plot(residuals(enmalle.negbinm1,type="pearson")~log(fitted(enmalle.negbinm1)))
+boxplot(residuals(enmalle.negbinm1,type="pearson")~enmalle.pouting$Idflota)
 abline(0,0,col="red")
-sum(residuals(enmalle.negbinran1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbinran1))+1)) 
 
-#8.2.4# comparing model approaches
-
-AICtab(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1)
-BICtab(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1)
-
-#mejoramos el modelo con los random effects, what shall we do?
-
-#según los parámetros de sobredispersión el mixed negative binomial es el más adecuado
-# parece que no será necesario recurrir a los zero inflated en ninguno de los casos
-
-#8.3# en cualquier caso probamos con un modelo zero inflated simple para ambos tipos de arte
-#it does not make sense to try ZI with nasa
-
-#8.3.1# exploring binomial 
+#8.2.6# ZI
+#exploring binomial 
 enmalle.pouting$binNtot<-ifelse(enmalle.pouting$Ntot==0,0,1)
 
-enmalle.bin<-gam(binNtot~Gear+s(lGRT,k=3)+
-                fyear+fZoneO+
-                s(Julian,k=6,bs="cc")+
-                s(lDepth,k=3)+
-                s(sstM,k=3)+
-                s(caladoNight,k=3)+
-                Seafloor,
-              family=binomial,data=enmalle.pouting)
+enmalle.bin<-glm(binNtot~Gear+fGRT+fyear+fZoneO+poly(Julian,2)+lDepth+sstM+caladoNight+Seafloor,
+                 family=binomial,data=enmalle.pouting)
 summary(enmalle.bin)
-anova(enmalle.bin)
-plot(enmalle.bin,pages=1,all.terms=T,scale=0,shade="T")
+Anova(enmalle.bin)
+plot(allEffects(enmalle.bin))
 
-#depth and calado night result in positive effects on pouting catch
-
-#8.3.2# enmalle
-enmalle.zipoiss1<-zeroinfl(Ntot~offset(log(offs1))+
-                             Gear*lGRT+
+# ZIPoiss
+#zeros intercept
+enmalle.zipoiss1<-zeroinfl(Ntot~offset(log(OffSet))+
+                             Gear*fGRT+
                              fyear*fZoneO+
                              poly(Julian,2)+
-                             Gear*lDepth+
+                             poly(lDepth,2)*Gear+
                              sstM+
-                             Gear*caladoNight+
-                             Seafloor|
-                             lDepth,
-                        dist="poisson",link="logit",data=enmalle.pouting)
+                             caladoNight*Gear+
+                             Seafloor|1,
+                           dist="poisson",link="logit",data=enmalle.pouting)
 
 summary(enmalle.zipoiss1)
 sum(residuals(enmalle.zipoiss1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zipoiss1))))
 
-enmalle.zinb1<-zeroinfl(Ntot~offset(log(offs1))+
-                          Gear*lGRT+
+#zeros modeled
+enmalle.zipoiss2<-zeroinfl(Ntot~offset(log(OffSet))+
+                             Gear*fGRT+
+                             fyear*fZoneO+
+                             poly(Julian,2)+
+                             lDepth*Gear+
+                             sstM+
+                             caladoNight*Gear+
+                             Seafloor|lDepth,
+                           dist="poisson",link="logit",data=enmalle.pouting)
+
+summary(enmalle.zipoiss2)
+sum(residuals(enmalle.zipoiss2,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zipoiss2))))
+
+#ZINB
+#zeros intercept
+enmalle.zinb1<-zeroinfl(Ntot~offset(log(OffSet))+
+                          Gear*fGRT+
                           fyear*fZoneO+
                           poly(Julian,2)+
-                          Gear*lDepth+
+                          lDepth*Gear+
                           sstM+
-                          Gear*caladoNight+
-                          Seafloor|
-                          lDepth,
-                     dist="negbin",link="logit",data=enmalle.pouting)
+                          caladoNight*Gear+
+                          Seafloor|1,
+                        dist="negbin",link="logit",data=enmalle.pouting)
 
 summary(enmalle.zinb1)
 sum(residuals(enmalle.zinb1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb1))+1))
 
+#zeros modeled
+enmalle.zinb2<-zeroinfl(Ntot~offset(log(OffSet))+
+                          Gear*fGRT+
+                          fyear*fZoneO+
+                          poly(Julian,2)+
+                          lDepth*Gear+
+                          sstM+
+                          caladoNight*Gear+
+                          Seafloor|lDepth,
+                        dist="negbin",link="logit",data=enmalle.pouting)
+
+summary(enmalle.zinb2)
+sum(residuals(enmalle.zinb2,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb2))+1))
+
+#Mixed ZINB
+#we decided not to include random effects
 #glmmadmb does not allow to include explanmatory variables in ZI part
-enmalle.zinbran1 <- glmmadmb(Ntot~Gear*lGRT+
-                               fyear*fZoneO+
-                               poly(Julian,2)+
-                               Gear*lDepth+
-                               sstM+
-                               Gear*caladoNight+
-                               Seafloor+
-                               offset(Enmalleoffset)+
-                            (1|Idflota), 
-                          data=enmalle.pouting,
-                          zeroInflation=TRUE, 
-                          family="nbinom")
+#enmalle.zinbm1 <- glmmadmb(Ntot~Gear*lGRT+
+#                               fyear*fZoneO+
+#                               poly(Julian,2)+
+#                               lDepth*Gear+
+#                               sstM+
+#                               Gear*caladoNight+
+#                               Seafloor+
+#                               offset(log(OffSet))+
+#                               (1|Idflota), 
+#                             data=enmalle.pouting,
+#                             zeroInflation=TRUE, 
+#                             family="nbinom")
 
-#it does not work properly
-# :(
+#Parameters were estimated, but not standard errors were not
 
-###############################################
-# Hurdle modelling (assumption: two step model)
-#we do not considered to include this in the model comparison
-#but we keep it in the code just to see other posibilities
-
-# nasa
-#nasa.hurdle1<-hurdle(Ntot~offset(log(offs5))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-#                     dist="poisson",link="logit",data=nasa.pouting)
-#summary(nasa.hurdle1)
-
-#nasa.hurdle2<-hurdle(Ntot~offset(log(offs5))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-#                     dist="negbin",link="logit",data=nasa.pouting)
-#summary(nasa.hurdle2)
-
-# enmalle
-#enmalle.hurdle1<-hurdle(Ntot~offset(log(offs1))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-#                     dist="poisson",link="logit",data=enmalle.pouting)
-#summary(enmalle.hurdle1)
-
-#enmalle.hurdle2<-hurdle(Ntot~offset(log(offs1))+fcrew+GRT+fyear+ns(Julian,2)+Depth+ns(Julian,2):Depth+
-#                       QxM+sstM+caladoNight+fZoneO+Seafloor|Depth,
-#                     dist="negbin",link="logit",data=enmalle.pouting)
-#summary(enmalle.hurdle2)
-###############################################
-
-#8.4# full model comparison
+#8.2.7# full model comparison
 # Comparison of models (just some tools, more could be added, see Potts & Elith 2006)
 
-#8.4.1# AIC/BIC
+#8.2.7.1# AIC/BIC
 
-#AIC
-AICtab(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1)
-AICtab(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1)
+AICtab(enmalle.poiss0,enmalle.poiss1,
+       enmalle.negbin0,enmalle.negbin1,enmalle.negbinm1,
+       enmalle.zipoiss1,enmalle.zipoiss2,enmalle.zinb1,enmalle.zinb2)
 
-#BIC
-nasa.bic=AIC(nasa.poiss0,nasa.poiss1,nasa.negbinran1,nasa.negbin1,k=log(dim(nasa.pouting)[1]))
-nasa.bic[order(nasa.bic$AIC), ]
-enmalle.bic=AIC(enmalle.poiss0,enmalle.poiss1,enmalle.negbinran1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1,k=log(dim(enmalle.pouting)[1]))
+enmalle.aic=AIC(enmalle.poiss0,enmalle.poiss1,
+             enmalle.negbin0,enmalle.negbin1,enmalle.negbinm1,
+             enmalle.zipoiss1,enmalle.zipoiss2,enmalle.zinb1,enmalle.zinb2,k=2)
+enmalle.aic[order(enmalle.aic$AIC), ]
+enmalle.bic=AIC(enmalle.poiss0,enmalle.poiss1,
+             enmalle.negbin0,enmalle.negbin1,enmalle.negbinm1,
+             enmalle.zipoiss1,enmalle.zipoiss2,enmalle.zinb1,enmalle.zinb2,k=log(dim(enmalle.pouting)[1]))
 enmalle.bic[order(enmalle.bic$AIC), ]
 
-#8.4.2# overdispersion parameter
+#8.2.7.2# overdispersion parameter
 
-#nasa
-nasa.GAMpoisson=sum(residuals(nasa.poiss0,type="pearson")^2)/nasa.poiss0$df.resid
-nasa.GLMpoisson=sum(residuals(nasa.poiss1,type="pearson")^2)/nasa.poiss1$df.resid
-nasa.NB=sum(residuals(nasa.negbin1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbin1))+1)) 
-nasa.MixedNB=sum(residuals(nasa.negbinran1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.negbinran1))+1)) 
+enmalle.disp<-data.frame(cbind(c("enmalle.poiss0","enmalle.poiss1",
+                              "enmalle.negbin0","enmalle.negbin1","enmalle.negbinm1",
+                              "enmalle.zipoiss1","enmalle.zipoiss2","enmalle.zinb1","enmalle.zinb2"),
+                            c(sum(residuals(enmalle.poiss0,type="pearson")^2)/enmalle.poiss0$df.resid,
+                              sum(residuals(enmalle.poiss1,type="pearson")^2)/enmalle.poiss1$df.resid,
+                              sum(residuals(enmalle.negbin0,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbin0))+1)),
+                              sum(residuals(enmalle.negbin1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbin1))+1)),
+                              sum(residuals(enmalle.negbinm1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbinm1))+1)),
+                              sum(residuals(enmalle.zipoiss1,type="pearson")^2)/enmalle.zipoiss1$df.resid,
+                              sum(residuals(enmalle.zipoiss2,type="pearson")^2)/enmalle.zipoiss2$df.resid,
+                              sum(residuals(enmalle.zinb1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb1))+1)),
+                              sum(residuals(enmalle.zinb2,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb2))+1)))))
+colnames(enmalle.disp)<-c("Model","Dispersion")
+enmalle.disp$Dispersion<-round(as.numeric(levels(enmalle.disp$Dispersion))[enmalle.disp$Dispersion],digits = 3)
+enmalle.disp[order(enmalle.disp$Dispersion),]
 
-nasa.model=c("nasa.GAMpoisson","nasa.GLMpoisson","nasa.NB","nasa.MixedNB")
-nasa.theta=c(nasa.GAMpoisson,nasa.GLMpoisson,nasa.NB,nasa.MixedNB)
-nasa.M=data.frame(cbind(nasa.model,nasa.theta))
-nasa.M=nasa.M[order(nasa.M$nasa.theta),]
-nasa.M
+#8.2.7.3# loglikelihood
 
-#enmalles
-enmalle.GAMpoisson=sum(residuals(enmalle.poiss0,type="pearson")^2)/enmalle.poiss0$df.resid
-enmalle.GLMpoisson=sum(residuals(enmalle.poiss1,type="pearson")^2)/enmalle.poiss1$df.resid
-enmalle.NB=sum(residuals(enmalle.negbin1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbin1))+1)) 
-enmalle.MixedNB=sum(residuals(enmalle.negbinran1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbinran1))+1)) 
-enmalle.ZIpoisson=sum(residuals(enmalle.zipoiss1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zipoiss1))))
-enmalle.ZINB=sum(residuals(enmalle.zinb1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.zinb1))+1))
+fm.enmalle<-list("enmalle.poiss0"=enmalle.poiss0,
+              "enmalle.poiss1"=enmalle.poiss1,
+              "enmalle.negbin0"=enmalle.negbin0,
+              "enmalle.negbin1"=enmalle.negbin1,
+              "enmalle.negbinm1"=enmalle.negbinm1,
+              "enmalle.zipoiss1"=enmalle.zipoiss1,
+              "enmalle.zipoiss2"=enmalle.zipoiss2,
+              "enmalle.zinb1"=enmalle.zinb1,
+              "enmalle.zinb2"=enmalle.zinb2)
 
-enmalle.model=c("enmalle.GAMpoisson","enmalle.GLMpoisson","enmalle.NB","enmalle.MixedNB","enmalle.ZIpoisson","enmalle.ZINB")
-enmalle.theta=c(enmalle.GAMpoisson,enmalle.GLMpoisson,enmalle.NB,enmalle.MixedNB,enmalle.ZIpoisson,enmalle.ZINB)
-enmalle.M=data.frame(cbind(enmalle.model,enmalle.theta))
-enmalle.M=enmalle.M[order(enmalle.M$enmalle.theta),]
-enmalle.M
+logliks.enmalle<-data.frame(cbind(c("enmalle.poiss0","enmalle.poiss1",
+                                 "enmalle.negbin0","enmalle.negbin1","enmalle.negbinm1",
+                                 "enmalle.zipoiss1","enmalle.zipoiss2","enmalle.zinb1","enmalle.zinb2"),
+                               logLik=sapply(fm.enmalle,function (x) round(logLik(x),digits=0)),
+                               Df=sapply(fm.enmalle,function (x) attr(logLik(x),"df"))))
+colnames(logliks.enmalle)<-c("Model","logLik","DF")
+logliks.enmalle$logLik<-round(as.numeric(levels(logliks.enmalle$logLik))[logliks.enmalle$logLik],digits = 0)
+logliks.enmalle$DF<-round(as.numeric(levels(logliks.enmalle$DF))[logliks.enmalle$DF],digits = 2)
+logliks.enmalle[order(-logliks.enmalle$logLik),]
 
-#If the dispersion parameter is significantly greater than one, indicating overdispersion (variance greater than the mean),
-#then the scale parameter should be used to adjust the variance.  
-#Failing to account for the overdispersion can result in inflated test statistics. 
-#However, when the dispersion parameter is less than one, then the test statistics become more conservative,
-#which is not considered as much of a problem.
-
-#8.4.3# loglikelihood
-
-fm.nasa1<-list("ML-Pois"=nasa.poiss1,"NB"=nasa.negbin1,"NB-mix"=nasa.negbinran1)
-fm.enmalle1<-list("ML-Pois"=enmalle.poiss1,"NB"=enmalle.negbin1,"NB-mix"=enmalle.negbinran1,"ZIP"=enmalle.zipoiss1,"ZINB"=enmalle.zinb1)
-
-logliks.nasa1<-rbind(logLik=sapply(fm.nasa1,function (x) round(logLik(x),digits=0)),
-               Df=sapply(fm.nasa1,function (x) attr(logLik(x),"df")))
-logliks.nasa1
-logliks.enmalle1<-rbind(logLik=sapply(fm.enmalle1,function (x) round(logLik(x),digits=0)),
-                     Df=sapply(fm.enmalle1,function (x) attr(logLik(x),"df")))
-logliks.enmalle1
-
-#8.4.4# Vuong test to compare NB vs ZINB
+#8.2.7.4# Vuong test to compare NB vs ZINB
 # do not run with random models
 
 vuong(enmalle.zinb1,enmalle.negbin1)
+vuong(enmalle.zinb2,enmalle.negbin1)
+vuong(enmalle.zinb1,enmalle.zinb2)
 
-#8.4.5# Predicting probabilities
+#8.2.7.5# Predicting probabilities
 
-#nasa
-phat.pois.nasa<-predprob(nasa.poiss1)
-phat.pois.mn.nasa<-apply(phat.pois.nasa,2,mean)
-phat.nb.nasa<-predprob(nasa.negbin1)
-phat.nb.mn.nasa<-apply(phat.nb.nasa,2,mean) 
-
-with(nasa.pouting,{
-  hist(Ntot,prob=TRUE,col="grey",breaks=seq(-0.5,246,1),xlab="",main="")
-  lines(x=seq(0,245,1),y=phat.pois.mn.nasa,type="l",lwd=2,col="red")
-  lines(x=seq(0,245,1),y=phat.nb.mn.nasa,type="l",lwd=2,col="blue")
-})
-
-#nasa
+#no mixed models neither gams included in this comparison
 phat.pois.enmalle<-predprob(enmalle.poiss1)
 phat.pois.mn.enmalle<-apply(phat.pois.enmalle,2,mean)
 phat.nb.enmalle<-predprob(enmalle.negbin1)
 phat.nb.mn.enmalle<-apply(phat.nb.enmalle,2,mean)
-phat.zipoiss.enmalle<-predprob(enmalle.zipoiss1)
-phat.zipoiss.mn.enmalle<-apply(phat.zipoiss.enmalle,2,mean)
-phat.zinb.enmalle<-predprob(enmalle.zinb1)
-phat.zinb.mn.enmalle<-apply(phat.zinb.enmalle,2,mean)
+phat.zipoiss1.enmalle<-predprob(enmalle.zipoiss1)
+phat.zipoiss1.mn.enmalle<-apply(phat.zipoiss1.enmalle,2,mean)
+phat.zipoiss2.enmalle<-predprob(enmalle.zipoiss2)
+phat.zipoiss2.mn.enmalle<-apply(phat.zipoiss2.enmalle,2,mean)
+phat.zinb1.enmalle<-predprob(enmalle.zinb1)
+phat.zinb1.mn.enmalle<-apply(phat.zinb1.enmalle,2,mean)
+phat.zinb2.enmalle<-predprob(enmalle.zinb2)
+phat.zinb2.mn.enmalle<-apply(phat.zinb2.enmalle,2,mean)
 
 with(enmalle.pouting,{
-  hist(Ntot,prob=TRUE,col="grey",breaks=seq(-0.5,1450,1),xlab="",
-       main="",ylim=c(0,0.5),xlim=c(-0.5,30))
-  lines(x=seq(0,1448,1),y=phat.pois.mn.enmalle,type="l",lwd=2,col="red")
-  lines(x=seq(0,1448,1),y=phat.nb.mn.enmalle,type="l",lwd=2,col="blue")
-  lines(x=seq(0,1448,1),y=phat.zipoiss.mn.enmalle,type="l",lwd=2,col="yellow")
-  lines(x=seq(0,1448,1),y=phat.zinb.mn.enmalle,type="l",lwd=2,col="green")
-})
+  hist(Ntot,prob=TRUE,col="grey",breaks=seq(-0.5,245,1),xlab="",main="")
+  lines(x=seq(0,245,1),y=phat.pois.mn.enmalle,type="l",lwd=2,col="red")
+  lines(x=seq(0,245,1),y=phat.nb.mn.enmalle,type="l",lwd=2,col="blue")
+  lines(x=seq(0,245,1),y=phat.zipoiss1.mn.enmalle,type="l",lwd=2,col="green")
+  lines(x=seq(0,245,1),y=phat.zinb1.mn.enmalle,type="l",lwd=2,col="yellow")
+  lines(x=seq(0,245,1),y=phat.zipoiss2.mn.enmalle,type="l",lwd=2,col="grey")
+  lines(x=seq(0,245,1),y=phat.zinb2.mn.enmalle,type="l",lwd=2,col="orange")
+  
+}) #???
 
-#8.4.6# Comparison of models (just some tools, more could be added, see Potts & Elith 2006)
+#8.2.7.6# Comparison of models (just some tools, more could be added, see Potts & Elith 2006)
 
-aics.nasa<-AIC(nasa.poiss1,nasa.negbin1,k=2) # AIC
-bics.nasa<-AIC(nasa.poiss1,nasa.negbin1,k=log(dim(nasa.pouting)[1])) # BIC
-aics.enmalle<-AIC(enmalle.poiss1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1,k=2) # AIC
-bics.enmalle<-AIC(enmalle.poiss1,enmalle.negbin1,enmalle.zipoiss1,enmalle.zinb1,k=log(dim(enmalle.pouting)[1])) # BIC
+enmalle.aic
+enmalle.bic
+logliks.enmalle
+logliks.enmalle2<-rbind(logLik=sapply(fm.enmalle,function (x) round(logLik(x),digits=0)),
+                     Df=sapply(fm.enmalle,function (x) attr(logLik(x),"df")))
 
-fm.nasa2<-list("ML-Pois"=nasa.poiss1,"NB"=nasa.negbin1)
-logliks.nasa2<-rbind(logLik=sapply(fm.nasa2,function (x) round(logLik(x),digits=0)),
-               Df=sapply(fm.nasa2,function (x) attr(logLik(x),"df")))
-fm.enmalle2<-list("ML-Pois"=enmalle.poiss1,"NB"=enmalle.negbin1,"ZIP"=enmalle.zipoiss1,"ZINB"=enmalle.zinb1)
-logliks.enmalle2<-rbind(logLik=sapply(fm.enmalle2,function (x) round(logLik(x),digits=0)),
-                     Df=sapply(fm.enmalle2,function (x) attr(logLik(x),"df")))
+zeroes.enmalle<-c("Obs"=sum(enmalle.pouting$Ntot<1),
+               "enmalle.poiss0"=sum(dpois(0,fitted(enmalle.poiss0))),
+               "enmalle.poiss1"=sum(dpois(0,fitted(enmalle.poiss1))),
+               "enmalle.negbin0"="NA",
+               "enmalle.negbin1"=sum(dnbinom(0,mu=fitted(enmalle.negbin1),size=enmalle.negbin1$theta)),
+               "enmalle.negbinm1"="NA",
+               "enmalle.zipoiss1"=sum(predict(enmalle.zipoiss1,type="prob")[,1]),
+               "enmalle.zipoiss2"=sum(predict(enmalle.zipoiss2,type="prob")[,1]),
+               "enmalle.zinb1"=sum(predict(enmalle.zinb1,type="prob")[,1]),
+               "enmalle.zinb2"=sum(predict(enmalle.zinb2,type="prob")[,1]))
 
-zeroes.nasa<-round(c("Obs"=sum(nasa.pouting$Ntot<1),
-                "ML-Pois"=sum(dpois(0,fitted(nasa.poiss1))),
-                "NB"=sum(dnbinom(0,mu=fitted(nasa.negbin1),size=nasa.negbin1$theta))))
-zeroes.enmalle<-round(c("Obs"=sum(enmalle.pouting$Ntot<1),
-                     "ML-Pois"=sum(dpois(0,fitted(enmalle.poiss1))),
-                     "NB"=sum(dnbinom(0,mu=fitted(enmalle.negbin1),size=enmalle.negbin1$theta)),
-                     "ZIP"=sum(predict(enmalle.zipoiss1,type="prob")[,1]),
-                     "ZINB"=sum(predict(enmalle.zinb1,type="prob")[,1])))
-
-modelsComp.nasa<-data.frame(cbind(logliks.nasa2[c(2,4)],bics.nasa[[2]],aics.nasa[[2]],logliks.nasa2[c(1,3)],zeroes.nasa[2:3]))
-colnames(modelsComp.nasa)<-c("Df","BIC","AIC","logLik",paste("Zeroes (Obs=",zeroes.nasa[[1]],")"))
-modelsComp.nasa$deltaAIC<-round(modelsComp.nasa$AIC-min(modelsComp.nasa$AIC),2)
-modelsComp.nasa$deltaBIC<-round(modelsComp.nasa$BIC-min(modelsComp.nasa$BIC),2)
-modelsComp.nasa$ModLikelihood<-round(exp(-modelsComp.nasa$deltaAIC/2),2)
-modelsComp.nasa$AICweight<-round(modelsComp.nasa$ModLikelihood/sum(modelsComp.nasa$ModLikelihood),2)
-modelsComp.nasa
-
-modelsComp.enmalle<-data.frame(cbind(logliks.enmalle2[c(2,4,6,8)],bics.enmalle[[2]],aics.enmalle[[2]],logliks.enmalle2[c(1,3,5,7)],zeroes.enmalle[2:5]))
+modelsComp.enmalle<-data.frame(cbind(logliks.enmalle2[c(2,4,6,8,10,12,14,16,18)],enmalle.bic[[2]],enmalle.aic[[2]],logliks.enmalle2[c(1,3,5,7,9,11,13,15,17)],zeroes.enmalle[2:10]))
 colnames(modelsComp.enmalle)<-c("Df","BIC","AIC","logLik",paste("Zeroes (Obs=",zeroes.enmalle[[1]],")"))
+modelsComp.enmalle$Df<-round(as.numeric(levels(modelsComp.enmalle$Df))[modelsComp.enmalle$Df],digits = 2)
+modelsComp.enmalle$BIC<-round(as.numeric(levels(modelsComp.enmalle$BIC))[modelsComp.enmalle$BIC],digits = 2)
+modelsComp.enmalle$AIC<-round(as.numeric(levels(modelsComp.enmalle$AIC))[modelsComp.enmalle$AIC],digits = 2)
+modelsComp.enmalle$logLik<-round(as.numeric(levels(modelsComp.enmalle$logLik))[modelsComp.enmalle$logLik],digits = 0)
+modelsComp.enmalle$Zeroes<-round(as.numeric(levels(modelsComp.enmalle$Zeroes))[modelsComp.enmalle$Zeroes],digits = 4)
 modelsComp.enmalle$deltaAIC<-round(modelsComp.enmalle$AIC-min(modelsComp.enmalle$AIC),2)
 modelsComp.enmalle$deltaBIC<-round(modelsComp.enmalle$BIC-min(modelsComp.enmalle$BIC),2)
 modelsComp.enmalle$ModLikelihood<-round(exp(-modelsComp.enmalle$deltaAIC/2),2)
 modelsComp.enmalle$AICweight<-round(modelsComp.enmalle$ModLikelihood/sum(modelsComp.enmalle$ModLikelihood),2)
+modelsComp.enmalle<-modelsComp.enmalle[order(modelsComp.enmalle$deltaAIC),]
 modelsComp.enmalle
 
 #final candidate models
+modelsComp.nasa
+modelsComp.enmalle
 
 #NO random effects
-nasa.negbin1
-enmalle.zinb1
+summary(nasa.negbin1)
+Anova(nasa.negbin1)
+summary(enmalle.zinb2)
+Anova(enmalle.zinb2) #it does not work
 
-#8.5# Selection of predictors
+#8.3# Selection of predictors
 
-#8.5.1# nasa model selection
+#8.3.1# nasa model selection
 nasa.NB1<-nasa.negbin1
 summary(nasa.NB1)
 Anova(nasa.NB1)
 
-# rm Depth
-nasa.NB2<-glm.nb(Ntot~offset(log(offs5))+
-                      lGRT+
-                      fyear+poly(Julian,2)+
-                      sstM+
-                      caladoNight,
+#sstM
+nasa.NB2<-glm.nb(Ntot~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+Depth+caladoNight,
                     data=nasa.pouting)
 summary(nasa.NB2)
 Anova(nasa.NB2)
 lrtest(nasa.NB1,nasa.NB2)
 AICtab(nasa.NB1,nasa.NB2)
 
-# rm poly(Julian, 2)
-nasa.NB3<-glm.nb(Ntot~offset(log(offs5))+
-                      lGRT+
-                      fyear+
-                      sstM+
-                      caladoNight,
+#Depth
+nasa.NB3<-glm.nb(Ntot~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+caladoNight,
                     data=nasa.pouting)
 summary(nasa.NB3)
 Anova(nasa.NB3)
 lrtest(nasa.NB2,nasa.NB3)
 AICtab(nasa.NB2,nasa.NB3)
 
-# rm lGRT
-nasa.NB4<-glm.nb(Ntot~offset(log(offs5))+
-                      fyear+
-                      sstM+
-                      caladoNight,
-                    data=nasa.pouting)
-summary(nasa.NB4)
-Anova(nasa.NB4)
-lrtest(nasa.NB3,nasa.NB4)
-AICtab(nasa.NB3,nasa.NB4)
-
-# rm sstM
-nasa.NB5<-glm.nb(Ntot~offset(log(offs5))+
-                      fyear+
-                      caladoNight,
-                    data=nasa.pouting)
-summary(nasa.NB5)
-Anova(nasa.NB5)
-lrtest(nasa.NB4,nasa.NB5)
-AICtab(nasa.NB4,nasa.NB5)
-
-AICtab(nasa.NB1,nasa.NB2,nasa.NB3,nasa.NB4,nasa.NB5)
-BICtab(nasa.NB1,nasa.NB2,nasa.NB3,nasa.NB4,nasa.NB5)
+AICtab(nasa.NB1,nasa.NB2,nasa.NB3)
+BICtab(nasa.NB1,nasa.NB2,nasa.NB3)
 
 coefplot2(nasa.NB2)
 sum(residuals(nasa.NB2,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.NB2))+1))
 
 #comparing models
-AICnasa<-AIC(nasa.NB1,nasa.NB2,nasa.NB3,nasa.NB4,nasa.NB5,k=2) # AIC
-BICnasa<-AIC(nasa.NB1,nasa.NB2,nasa.NB3,nasa.NB4,nasa.NB5,k=log(dim(nasa.pouting)[1])) # BIC
+AICnasa<-AIC(nasa.NB1,nasa.NB2,nasa.NB3,k=2) # AIC
+BICnasa<-AIC(nasa.NB1,nasa.NB2,nasa.NB3,k=log(dim(nasa.pouting)[1])) # BIC
 
-FMnasa<-list("M1"=nasa.NB1,"M2"=nasa.NB2,"M3"=nasa.NB3,"M4"=nasa.NB4,"M4"=nasa.NB4)
+FMnasa<-list("M1"=nasa.NB1,"M2"=nasa.NB2,"M3"=nasa.NB3)
 Logliksnasa<-rbind(logLik=sapply(FMnasa,function (x) round(logLik(x),digits=0)),
                      Df=sapply(FMnasa,function (x) attr(logLik(x),"df")))
 
 ZEROnasa<-round(c("Obs"=sum(nasa.pouting$Ntot<1),
                   "M1"=sum(dnbinom(0,mu=fitted(nasa.NB1),size=nasa.NB1$theta)),
                   "M2"=sum(dnbinom(0,mu=fitted(nasa.NB2),size=nasa.NB2$theta)),
-                  "M3"=sum(dnbinom(0,mu=fitted(nasa.NB3),size=nasa.NB3$theta)),
-                  "M4"=sum(dnbinom(0,mu=fitted(nasa.NB4),size=nasa.NB4$theta)),
-                  "M5"=sum(dnbinom(0,mu=fitted(nasa.NB5),size=nasa.NB5$theta))
-                  ))
+                  "M3"=sum(dnbinom(0,mu=fitted(nasa.NB3),size=nasa.NB3$theta))))
 
-MCompnasa<-data.frame(cbind(Logliksnasa[c(2,4,6,8,10)],BICnasa[[2]],AICnasa[[2]],Logliksnasa[c(1,3,5,7,9)],ZEROnasa[2:6]))
+MCompnasa<-data.frame(cbind(Logliksnasa[c(2,4,6)],BICnasa[[2]],AICnasa[[2]],Logliksnasa[c(1,3,5)],ZEROnasa[2:4]))
 colnames(MCompnasa)<-c("Df","BIC","AIC","logLik",paste("Zeroes (Obs=",zeroes.nasa[[1]],")"))
 MCompnasa$deltaAIC<-round(MCompnasa$AIC-min(MCompnasa$AIC),2)
 MCompnasa$deltaBIC<-round(MCompnasa$BIC-min(MCompnasa$BIC),2)
@@ -1674,61 +2043,63 @@ MCompnasa$ModLikelihood<-round(exp(-MCompnasa$deltaAIC/2),2)
 MCompnasa$AICweight<-round(MCompnasa$ModLikelihood/sum(MCompnasa$ModLikelihood),2)
 MCompnasa
 
-#8.5.2# enmalle model selection
-enmalle.ZINB1 <- enmalle.zinb1
+summary(nasa.NB2)
+Anova(nasa.NB2)
+plot(allEffects(nasa.NB2))
+sum(residuals(nasa.NB2,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(nasa.NB2))+1))
+#slightly overdispersed
+
+#8.3.2# enmalle model selection
+enmalle.ZINB1 <- enmalle.zinb2
 summary(enmalle.ZINB1)
 
-# rm sstM
-enmalle.ZINB2 <- zeroinfl(Ntot~offset(log(offs1))+
-                            Gear*lGRT+
-                            fyear*fZoneO+
+#year:zone
+enmalle.ZINB2 <- zeroinfl(Ntot~offset(log(OffSet))+
+                            Gear*fGRT+
+                            fyear+fZoneO+
                             poly(Julian,2)+
-                            Gear*lDepth+
-                            Gear*caladoNight+
-                            Seafloor|
-                            lDepth,
+                            lDepth*Gear+
+                            sstM+
+                            caladoNight*Gear+
+                            Seafloor|lDepth,
                           dist="negbin",link="logit",data=enmalle.pouting)
 summary(enmalle.ZINB2)
 lrtest(enmalle.ZINB1,enmalle.ZINB2)
 AICtab(enmalle.ZINB1,enmalle.ZINB2)
 
-# rm ploy(2)
-enmalle.ZINB3 <- zeroinfl(Ntot~offset(log(offs1))+
-                            Gear*lGRT+
+#sstM, but reintroducing interaction
+enmalle.ZINB3 <- zeroinfl(Ntot~offset(log(OffSet))+
+                            Gear*fGRT+
                             fyear*fZoneO+
-                            Julian+
-                            Gear*lDepth+
-                            Gear*caladoNight+
-                            Seafloor|
-                            lDepth,
+                            poly(Julian,2)+
+                            lDepth*Gear+
+                            caladoNight*Gear+
+                            Seafloor|lDepth,
                           dist="negbin",link="logit",data=enmalle.pouting)
 summary(enmalle.ZINB3)
-lrtest(enmalle.ZINB2,enmalle.ZINB3)
-AICtab(enmalle.ZINB2,enmalle.ZINB3)
+lrtest(enmalle.ZINB1,enmalle.ZINB3)
+AICtab(enmalle.ZINB1,enmalle.ZINB3)
 
-# rm GearVETAS:caladoNight
-enmalle.ZINB4 <- zeroinfl(Ntot~offset(log(offs1))+
-                            Gear*lGRT+
+#poly(Julian,2)
+enmalle.ZINB4 <- zeroinfl(Ntot~offset(log(OffSet))+
+                            Gear*fGRT+
                             fyear*fZoneO+
                             Julian+
-                            Gear*lDepth+
-                            caladoNight+
-                            Seafloor|
-                            lDepth,
+                            lDepth*Gear+
+                            caladoNight*Gear+
+                            Seafloor|lDepth,
                           dist="negbin",link="logit",data=enmalle.pouting)
 summary(enmalle.ZINB4)
 lrtest(enmalle.ZINB3,enmalle.ZINB4)
 AICtab(enmalle.ZINB3,enmalle.ZINB4)
 
-# rm GearVETAS:caladoNight
-enmalle.ZINB5 <- zeroinfl(Ntot~offset(log(offs1))+
-                            Gear*lGRT+
+#Seafloor
+enmalle.ZINB5 <- zeroinfl(Ntot~offset(log(OffSet))+
+                            Gear*fGRT+
                             fyear*fZoneO+
                             Julian+
-                            lDepth+
-                            caladoNight+
-                            Seafloor|
-                            lDepth,
+                            lDepth*Gear+
+                            caladoNight*Gear|lDepth,
                           dist="negbin",link="logit",data=enmalle.pouting)
 summary(enmalle.ZINB5)
 lrtest(enmalle.ZINB4,enmalle.ZINB5)
@@ -1757,110 +2128,96 @@ MCompenmalle$ModLikelihood<-round(exp(-MCompenmalle$deltaAIC/2),2)
 MCompenmalle$AICweight<-round(MCompenmalle$ModLikelihood/sum(MCompenmalle$ModLikelihood),2)
 MCompenmalle
 
+summary(enmalle.ZINB4)
+sum(residuals(enmalle.ZINB4,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.ZINB4))+1))
+#slightly overdispersed
+
+#final model selection
 MCompnasa
 MCompenmalle
 
-nasa.NB2
-enmalle.ZINB3
+summary(nasa.NB2)
+summary(enmalle.ZINB4)
 
-#8.6# Basic model checking
+#8.4# Basic model checking
 
+#8.4.1# nasa model checking
 nasa.pouting$residNB<-residuals(nasa.NB2,type="pearson")
 nasa.pouting$fitNB<-fitted(nasa.NB2,type="response")
+nasa.pouting$LfitNB<-log(nasa.pouting$fitNB)
 
-enmalle.pouting$residZINB<-residuals(enmalle.ZINB3,type="pearson")
-enmalle.pouting$fitZINB<-fitted(enmalle.ZINB3,type="response")
+#8.4.1.1# Normality (not really relevant) and heterogeneity
 
-#8.6.1# Normality (not really relevant) and heterogeneity
-
-#nasa
-par(mfrow=c(1,2))
-hist(nasa.pouting$residNB,col="grey",breaks=50) # More negative residuals
-plot(residNB~log(fitNB),data=nasa.pouting,xlab="Fitted values",ylab="Pearson residuals",pch=16)
-abline(h=0,col="grey")
-
-resPlot1.nasa<-ggplot(data=nasa.pouting,aes(x=log(fitNB),y=residNB))+
-	geom_point(col="#3182bd",size=2)+
-	scale_y_continuous("Pearson residuals")+
-	scale_x_continuous("Fitted values")+
-	ggtitle("Residual vs. Fitted") # No appaerent lack of fit
-resPlot1.nasa
-
-#enmalle
-par(mfrow=c(1,2))
-hist(enmalle.pouting$residZINB,col="grey",breaks=50) # More negative residuals
-plot(residZINB~log(fitZINB),data=enmalle.pouting,xlab="Fitted values",ylab="Pearson residuals",pch=16)
-abline(h=0,col="grey")
-
-resPlot1.enmalle<-ggplot(data=enmalle.pouting,aes(x=log(fitZINB),y=residZINB))+
-  geom_point(col="#3182bd",size=2)+
+hn<-ggplot(nasa.pouting, aes(x=residNB))+
+  geom_histogram(binwidth = 0.2,aes(fill = ..count..))+
+  scale_fill_gradient("Count", low = "green", high = "red") +
+  geom_vline(aes(xintercept=0),col="black")+
+  scale_x_continuous("Pearson residuals")
+frn<-ggplot(data=nasa.pouting,aes(x=fitNB,y=residNB,colour=residNB))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red")+
   scale_y_continuous("Pearson residuals")+
   scale_x_continuous("Fitted values")+
-  ggtitle("Residual vs. Fitted") # No appaerent lack of fit
-resPlot1.enmalle
+  geom_hline(aes(yintercept=0),col="black")+
+  ggtitle("Residual vs. Fitted") # some lack of fit at low and high values
+#we are no able to perfectly catch extreme values variation, too much overdispersion
 
-#8.6.2# Residuals vs predictors
+pdf(file="NBassumption_nasapouting.pdf",width=10,height=10)
 
-#nasa
-par(mfcol=c(2,6))
-boxplot(residNB~fgear,data=nasa.pouting)
-abline(h=0,col="red")
-boxplot(residNB~fcrew,data=nasa.pouting)
-abline(h=0,col="red")
-boxplot(residNB~fyear,data=nasa.pouting)
-abline(h=0,col="red")
-boxplot(residNB~fZoneO,data=nasa.pouting)
-abline(h=0,col="red")
-boxplot(residNB~Seafloor,data=nasa.pouting)
-abline(h=0,col="red")
-plot(residNB~lGRT,data=nasa.pouting)
-abline(h=0,col="red")
-plot(residNB~Julian,data=nasa.pouting)
-abline(h=0,col="red")
-plot(residNB~lDepth,data=nasa.pouting)
-abline(h=0,col="red")
-plot(residNB~QxM,data=nasa.pouting)
-abline(h=0,col="red")
-plot(residNB~sstM,data=nasa.pouting)
-abline(h=0,col="red")
-plot(residNB~caladoNight,data=nasa.pouting)
-abline(h=0,col="red")
-boxplot(residNB~Idflota,data=nasa.pouting)
-abline(h=0,col="red")
+multiplot(hn,frn)
 
-#enmalle
-par(mfcol=c(2,6))
-boxplot(residZINB~fgear,data=enmalle.pouting)
-abline(h=0,col="red")
-boxplot(residZINB~fcrew,data=enmalle.pouting)
-abline(h=0,col="red")
-boxplot(residZINB~fyear,data=enmalle.pouting)
-abline(h=0,col="red")
-boxplot(residZINB~fZoneO,data=enmalle.pouting)
-abline(h=0,col="red")
-boxplot(residZINB~Seafloor,data=enmalle.pouting)
-abline(h=0,col="red")
-plot(residZINB~lGRT,data=enmalle.pouting)
-abline(h=0,col="red")
-plot(residZINB~Julian,data=enmalle.pouting)
-abline(h=0,col="red")
-plot(residZINB~lDepth,data=enmalle.pouting)
-abline(h=0,col="red")
-plot(residZINB~QxM,data=enmalle.pouting)
-abline(h=0,col="red")
-plot(residZINB~sstM,data=enmalle.pouting)
-abline(h=0,col="red")
-plot(residZINB~caladoNight,data=enmalle.pouting)
-abline(h=0,col="red")
-boxplot(residZINB~Idflota,data=enmalle.pouting)
-abline(h=0,col="red")
+dev.off()
 
-#8.6.3# Spatial patterns
+#8.4.1.2# Residuals vs predictors
 
-#nasa
+rpn1<-ggplot(nasa.pouting, aes(x=factor(Idflota), y=residNB))+
+  geom_boxplot(col="gray50",aes(fill = GRT))+
+  scale_fill_gradient(low = "green", high = "red") +
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_discrete("Boat")
+rpn2<-ggplot(nasa.pouting, aes(x=fyear, y=residNB))+
+  geom_boxplot(col="gray50",fill = "gray70")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_discrete("Year")+
+  facet_wrap(~fZoneO,scales="free")
+rpn3<-ggplot(nasa.pouting, aes(x=fyear, y=residNB))+
+  geom_boxplot(col="gray50",fill = "gray70")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_discrete("Year")+
+  facet_wrap(~Seafloor,scales="free")
+rpn4<-ggplot(nasa.pouting, aes(x=Julian, y=residNB,colour=fitNB))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red",expression("CPUE"))+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("Julian")
+rpn5<-ggplot(nasa.pouting, aes(x=Depth, y=residNB,colour=fitNB))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red",expression("CPUE"))+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("Depth(m)")
+rpn6<-ggplot(nasa.pouting, aes(x=caladoNight, y=residNB,colour=fitNB))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red",expression("CPUE"))+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("% Night time")
+
+pdf(file="NBresid-expl_nasapouting.pdf",width=10,height=16)
+
+multiplot(rpn2,rpn4,rpn1,rpn3,rpn5,rpn6,cols=2)
+
+dev.off()
+
+#8.4.1.3# Spatial patterns
+
 ggplot(data=nasa.pouting,aes(x=Lon,y=Lat))+
-	geom_point(aes(colour=residNB))+
-	scale_colour_gradient(low="blue",high="red")
+  geom_point(aes(colour=residNB))+
+  scale_colour_gradient(low="green",high="red")
 
 nasa.pouting.Spat<-data.frame(nasa.pouting$residNB,nasa.pouting$Lon,nasa.pouting$Lat)
 coordinates(nasa.pouting.Spat)<- ~nasa.pouting.Lon+nasa.pouting.Lat
@@ -1872,40 +2229,118 @@ plot(vario2.nasa,pch=16,col=1,cex=1.5) # No clear spatial autocorrelation using 
 # robust variogram estimate
 
 var1.nasa<-ggplot(data=vario1.nasa,aes(x=dist,y=gamma))+
-	geom_point(aes(size=np),col="#3182bd")+
-	scale_y_continuous("Sample variogram",limits=c(0.5,1.75))+
-	scale_x_continuous("Distance")+
-	scale_size_continuous("Number of \npoint pairs")+
-	ggtitle("Classical variogram")+
-	theme(legend.position=c(0,0),legend.justification=c(-0.3,-0.15))
+  geom_point(aes(size=np),col="#3182bd")+
+  scale_y_continuous("Sample variogram",limits=c(0.5,1.75))+
+  scale_x_continuous("Distance")+
+  scale_size_continuous("Number of \npoint pairs")+
+  ggtitle("Classical variogram")+
+  theme(legend.position=c(0,0),legend.justification=c(-0.3,-0.15))
 var1.nasa
-	
+
 var2.nasa<-ggplot(data=vario2.nasa,aes(x=dist,y=gamma))+
-	geom_point(aes(size=np),col="#3182bd")+
-	scale_y_continuous("Sample variogram",limits=c(0.5,1))+
-	scale_x_continuous("Distance")+
-	scale_size_continuous("Number of \npoint pairs")+
-	ggtitle("Robust variogram")+
-	theme(legend.position="none")
+  geom_point(aes(size=np),col="#3182bd")+
+  scale_y_continuous("Sample variogram",limits=c(0.5,1))+
+  scale_x_continuous("Distance")+
+  scale_size_continuous("Number of \npoint pairs")+
+  ggtitle("Robust variogram")+
+  theme(legend.position="none")
 var2.nasa
 
-pdf(file="NBresid-nasapouting.pdf",width=13,height=4)
+pdf(file="NBresid-nasapouting.pdf",width=10,height=10)
 
-multiplot(resPlot1.nasa,var1.nasa,var2.nasa,cols=3)
+multiplot(hn,var1.nasa,frn,var2.nasa,cols=2)
 
 dev.off()
 
-#enmalle
-ggplot(data=enmalle.pouting,aes(x=Lon,y=Lat))+
-  geom_point(aes(colour=residZINB))+
-  scale_colour_gradient(low="blue",high="red")
+#8.4.2# enmalle model checking
+enmalle.pouting$residZI<-residuals(enmalle.ZINB4,type="pearson")
+enmalle.pouting$fitZI<-fitted(enmalle.ZINB4,type="response")
+enmalle.pouting$LfitZI<-log(enmalle.pouting$fitZI)
 
-enmalle.pouting.Spat<-data.frame(enmalle.pouting$residZINB,enmalle.pouting$Lon,enmalle.pouting$Lat)
+#8.4.2.1# Normality (not really relevant) and heterogeneity
+
+he<-ggplot(enmalle.pouting, aes(x=residZI))+
+  geom_histogram(binwidth = 0.2,aes(fill = ..count..))+
+  scale_fill_gradient("Count", low = "green", high = "red") +
+  geom_vline(aes(xintercept=0),col="black")+
+  scale_x_continuous("Pearson residuals") #very bad normality stuff
+fre<-ggplot(data=enmalle.pouting,aes(x=LfitZI,y=residZI,colour=residZI))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red")+
+  scale_y_continuous("Pearson residuals")+
+  scale_x_continuous("Fitted values")+
+  geom_hline(aes(yintercept=0),col="black")+
+  ggtitle("Residual vs. Fitted") # some lack of fit at low and high values
+#we are no able to perfectly catch extreme values variation, too much overdispersion
+
+pdf(file="ZIassumption_enmallepouting.pdf",width=10,height=10)
+
+multiplot(he,fre)
+
+dev.off()
+
+#8.4.2.2# Residuals vs predictors
+
+rpe1<-ggplot(enmalle.pouting, aes(x=factor(Idflota), y=residZI))+
+  geom_boxplot(col="gray50",fill = "gray70")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_discrete("Boat")+
+  facet_wrap(~Gear,scales="free")+
+  theme(axis.text.x = element_blank(), axis.text.x = element_blank())
+rpe2<-ggplot(enmalle.pouting, aes(x=fyear, y=residZI))+
+  geom_boxplot(col="gray50",fill = "gray70")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_discrete("Year",breaks=c("2000","2005","2010"))+
+  facet_grid(fZoneO~Gear,scales="free")
+rpe3<-ggplot(enmalle.pouting, aes(x=fyear, y=residZI))+
+  geom_boxplot(col="gray50",fill = "gray70")+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_discrete("Year")+
+  facet_grid(Seafloor~Gear,scales="free")
+rpe4<-ggplot(enmalle.pouting, aes(x=Julian, y=residZI,colour=fitZI))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red",expression("CPUE"))+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("Julian")+
+  facet_wrap(~Gear,scales="free")
+rpe5<-ggplot(enmalle.pouting, aes(x=Depth, y=residZI,colour=fitZI))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red",expression("CPUE"))+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("Depth(m)")+
+  facet_wrap(~Gear,scales="free")
+rpe6<-ggplot(enmalle.pouting, aes(x=caladoNight, y=residZI,colour=fitZI))+
+  geom_point(size=3)+
+  scale_colour_gradient(low="green", high="red",expression("CPUE"))+
+  geom_hline(aes(yintercept=0),col="black")+
+  scale_y_continuous("Residuals")+
+  scale_x_continuous("% Night time")+
+  facet_wrap(~Gear,scales="free")
+
+pdf(file="ZIresid-expl_enmallepouting.pdf",width=10,height=16)
+
+multiplot(rpe2,rpe4,rpe6,rpe3,rpe5,rpe1,cols=2)
+
+dev.off()
+
+#8.4.2.3# Spatial patterns
+
+ggplot(data=enmalle.pouting,aes(x=Lon,y=Lat))+
+  geom_point(aes(colour=residZI))+
+  scale_colour_gradient(low="green",high="red")+
+  facet_wrap(~Gear,scales="free")
+
+enmalle.pouting.Spat<-data.frame(enmalle.pouting$residZI,enmalle.pouting$Lon,enmalle.pouting$Lat)
 coordinates(enmalle.pouting.Spat)<- ~enmalle.pouting.Lon+enmalle.pouting.Lat
-vario1.enmalle<-variogram(enmalle.pouting.residZINB~1,data=enmalle.pouting.Spat)
+vario1.enmalle<-variogram(enmalle.pouting.residZI~1,data=enmalle.pouting.Spat)
 plot(vario1.enmalle,pch=16,col=1,cex=1.5) # No spatial autocorrelation using the default
 # classical method of moments estimate of the variogram (this assumes normality)
-vario2.enmalle<-variogram(enmalle.pouting.residZINB~1,data=enmalle.pouting.Spat,cressie=TRUE)
+vario2.enmalle<-variogram(enmalle.pouting.residZI~1,data=enmalle.pouting.Spat,cressie=TRUE)
 plot(vario2.enmalle,pch=16,col=1,cex=1.5) # No clear spatial autocorrelation using the
 # robust variogram estimate
 
@@ -1927,475 +2362,565 @@ var2.enmalle<-ggplot(data=vario2.enmalle,aes(x=dist,y=gamma))+
   theme(legend.position="none")
 var2.enmalle
 
-pdf(file="ZINBresid-enmallepouting.pdf",width=13,height=4)
+pdf(file="ZIresid-enmallepouting.pdf",width=10,height=10)
 
-multiplot(resPlot1.enmalle,var1.enmalle,var2.enmalle,cols=3)
+multiplot(he,var1.enmalle,fre,var2.enmalle,cols=2)
 
 dev.off()
 
-#8.7# Model coefficients interpretation (care with ln-transformation of Depth)??
+#8.5# Model coefficients interpretation (care with ln-transformation of Depth)??
 
-nasa.NB2
-enmalle.ZINB3
+summary(nasa.NB2)
+summary(enmalle.ZINB4)
 
 exp(coef(nasa.NB2))
 
-exp(coef(enmalle.ZINB3)[c(1:55)]) #count part
-exp(coef(enmalle.ZINB3)[c(56,57)]) #zero part
+exp(coef(enmalle.ZINB4)[c(1:63)]) #count part
+exp(coef(enmalle.ZINB4)[64]) #zero part
 
 # ----------------------------- #
 #9# Bootstrapping the optimal model coefficients (zero & count parts)
 
-#9.1# Function (add starting values to the model if needed!!)
+#9.1# Function
+#(add starting values to the model if needed!!)
+dput(round(coef(nasa.NB2),4))
+length(coef(nasa.NB2))
 
-nasa.NB2<-glm.nb(Ntot~offset(log(offs5))+
-                   lGRT+
-                   fyear+poly(Julian,2)+
-                   sstM+
-                   caladoNight,
-                 data=nasa.pouting)
-#dput(round(coef(nasa.NB2),4))
+dput(round(coef(enmalle.ZINB4,"count"),4))
+dput(round(coef(enmalle.ZINB4,"zero"),4))
+length(coef(enmalle.ZINB4))
 
-enmalle.ZINB3 <- zeroinfl(Ntot~offset(log(offs1))+
-                            Gear*lGRT+
-                            fyear*fZoneO+
-                            Julian+
-                            Gear*lDepth+
-                            Gear*caladoNight+
-                            Seafloor|
-                            lDepth,
-                          dist="negbin",link="logit",data=enmalle.pouting)
-#dput(round(coef(enmalle.ZINB3,"count"),4))
-#dput(round(coef(enmalle.ZINB3,"zero"),4))
+#http://www.ats.ucla.edu/stat/r/dae/zinbreg.htm
 
-boot.nb.nasa<-function (data,i) {
-	
-	try(mod<-glm.nb(Ntot~offset(log(offs5))+
-	                  lGRT+
-	                  fyear+poly(Julian,2)+
-	                  sstM+
-	                  caladoNight,
-	                data=data[i,]))
+#9.1.1#nasa
+#nasa.NB2<-glm.nb(Ntot~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+poly(Depth,2)+caladoNight,
+#data=nasa.pouting)
+
+boot.nb.nasa<-function (data,indices) {
+  
+  data<-data[indices,]
+  try(mod<-glm.nb(Ntot~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+Depth+caladoNight,
+	                data=data))
 						   			  
 	if (exists("mod")) { 
 						   			 
-	as.vector(t(coef(summary(mod))[,1:2]))
+	  as.vector(t(coef(summary(mod))[,1:2]))
 	
-	} else {rep(NA,times=2)} # If the above model crashes this fills in the gaps
-    						  # with NA and the algorithm continues
-                  # times=length(as.vector(t(coef(summary(mod))[,1:2])))/2
-		
+	} else {rep(NA,times=28)}
+  # If the above model crashes this fills in the gaps
+  # with NA and the algorithm continues
+	
 }
 
-boot.zinb.enmalle<-function (data,i) {
+#9.1.2#enmalle
+#enmalle.ZINB4 <- zeroinfl(Ntot~offset(log(OffSet))+
+#Gear*fGRT+fyear*fZoneO+Julian+poly(lDepth,2)*Gear+caladoNight*Gear+Seafloor|1,
+#dist="negbin",link="logit",data=enmalle.pouting)
+
+boot.zinb.enmalle<-function (data,indices) {
   
-  try(mod<-zeroinfl(Ntot~offset(log(offs1))+
-                      Gear*lGRT+
+  data<-data[indices,]
+  try(mod<-zeroinfl(Ntot~offset(log(OffSet))+
+                      Gear*fGRT+
                       fyear*fZoneO+
                       Julian+
-                      Gear*lDepth+
-                      Gear*caladoNight+
-                      Seafloor|
-                      lDepth,
-                    dist="negbin",link="logit",data=data[i,]))
+                      lDepth*Gear+
+                      caladoNight*Gear+
+                      Seafloor|lDepth,
+                    dist="negbin",link="logit",data=data))
   
   if (exists("mod")) { 
     
     as.vector(t(do.call(rbind,coef(summary(mod)))[,1:2]))
     
-  } else {rep(NA,times=58)} #times=length(as.vector(t(do.call(rbind,coef(summary(enmalle.ZINB3)))[,1:2])))/2 
+  } else {rep(NA,times=128)}
   
 }
 
 #9.2# Coefficients (obtain CI of estimates excluding SE and theta)
 
-#nasa
-RR<-10000 # Number of resamples (reduce this number for testing the code)
+#9.2.1# nasa
+RR<-1000 # Number of resamples (reduce this number for testing the code)
 nasa.nb.boot.out<-boot(data=nasa.pouting,statistic=boot.nb.nasa,R=RR)
 nasa.nb.boot.out  # Basic output
+plot(nasa.nb.boot.out,index=1)
+#Example of histogram and qqplot for a given component
 
-parms.nasa<-t(sapply(c(1,3,5,7,9,11,13,15,17,19,21,23),
-                     function (i) {
-                       out<-boot.ci(nasa.nb.boot.out,index=c(i,i+1),type=c("perc","bca"))
-                       with(out,c(Estimate=t0,pLow=percent[4],pUpp=percent[5],bcaLow=bca[4],bcaUpp=bca[5]))
-                       })) # Care!!! BCA calculation sometimes crashes (if RR is small)... 
+nasa.nb.boot.out2<-as.data.frame(nasa.nb.boot.out$t[,seq(1,25,2)]) # Coefficients of interest from the boot object matrix
+colnames(nasa.nb.boot.out2)<-names(coef(nasa.NB2))
+head(nasa.nb.boot.out2)
+write.table(x=nasa.nb.boot.out2,file="nasabootCoefs.txt",row.names=F)
 
-row.names(parms.nasa)<-names(coef(nasa.NB2))
-parms.nasa
+nasa.parmsPERC<-t(sapply(seq(1,25,2),function (i) {
+  out<-boot.ci(nasa.nb.boot.out,index=i,type=c("perc"))
+  with(out,c(Estimate=t0,pLow=percent[4],pUpp=percent[5]))
+})) # Obtain intervals calculated using the bootstrap percentile method
+row.names(nasa.parmsPERC)<-names(coef(nasa.NB2))
+head(nasa.parmsPERC)
+write.table(x=as.data.frame(nasa.parmsPERC),file="nasabootPERC.txt",row.names=T)
 
-summary(nasa.NB2)
-confint(nasa.NB2)
+#it takes too long
+#nasa.parmsBCA<-t(sapply(seq(1,27,2),function (i) {
+#  out<-boot.ci(nasa.nb.boot.out,index=i,type=c("bca"))
+#  with(out,c(Estimate=t0,bcaLow=bca[4],bcaUpp=bca[5]))
+#})) # Obtain intervals calculated using the bootstrap bias-corrected accelerated method
+#row.names(nasa.parmsBCA)<-names(coef(nasa.NB2))
+#head(nasa.parmsBCA)
+#write.table(x=as.data.frame(nasa.parmsBCA),file="nasabootBCA.txt",row.names=T)
+#ci.nasa<-data.frame(cbind(nasa.parmsPERC,nasa.parmsBCA,confint(nasa.NB2)))
+#ci.nasa<-ci.nasa[,c(1,2,3,5,6,7,8)]
+#colnames(ci.nasa)<-c("Estimate","pLow","pUpp","bcaLow","bcaUpp","2.5%","97.%")
 
-#enmalle
-RR<-10000 # Number of resamples (reduce this number for testing the code)
+#we only present perc CI (BCA just in case reviewers required them)
+ci.nasa<-data.frame(cbind(nasa.parmsPERC,confint(nasa.NB2)))
+colnames(ci.nasa)<-c("Estimate","pLow","pUpp","2.5%","97.%")
+str(ci.nasa)
+ci.nasa
+write.table(ci.nasa,file="ci_nasa.txt",row.names=T)
+
+#9.2.2# enmalle
+RR<-1000 # Number of resamples (reduce this number for testing the code)
 enmalle.zinb.boot.out<-boot(data=enmalle.pouting,statistic=boot.zinb.enmalle,R=RR)
 enmalle.zinb.boot.out  # Basic output
-
-parms.enmalle<-t(sapply(c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57),
-                function (i) {
-                  out<-boot.ci(zinb.boot.out,index=c(i,i+1),type=c("perc","bca"))
-                  with(out,c(Estimate=t0,pLow=percent[4],pUpp=percent[5],bcaLow=bca[4],bcaUpp=bca[5]))
-                  }))
-row.names(parms.enmalle)<-names(coef(enmalle.ZINB3))
-parms.enmalle
-
-summary(enmalle.ZINB3)
-confint(enmalle.ZINB3)
-
-#9.3# Example of histogram and qqplot for a given component
-
-plot(nasa.nb.boot.out,index=1)
 plot(enmalle.zinb.boot.out,index=1)
+
+enmalle.zinb.boot.out2<-as.data.frame(enmalle.zinb.boot.out$t[,c(seq(1,121,2),125,127)]) # Coefficients of interest from the boot object matrix
+colnames(enmalle.zinb.boot.out2)<-names(coef(enmalle.ZINB4))
+head(enmalle.zinb.boot.out2)
+write.table(x=enmalle.zinb.boot.out2,file="enmallebootCoefs.txt",row.names=F)
+
+enmalle.parmsPERC<-t(sapply(c(seq(1,121,2),125,127),function (i) {
+  out<-boot.ci(enmalle.zinb.boot.out,index=i,type=c("perc"))
+  with(out,c(Estimate=t0,pLow=percent[4],pUpp=percent[5]))
+})) # Obtain intervals calculated using the bootstrap percentile method
+row.names(enmalle.parmsPERC)<-names(coef(enmalle.ZINB4))
+head(enmalle.parmsPERC)
+write.table(x=as.data.frame(enmalle.parmsPERC),file="enmallebootPERC.txt",row.names=T)
+
+#it takes too long
+#enmalle.parmsBCA<-t(sapply(seq(1,127,2),function (i) {
+#  out<-boot.ci(enmalle.zinb.boot.out,index=i,type=c("bca"))
+#  with(out,c(Estimate=t0,bcaLow=bca[4],bcaUpp=bca[5]))
+#})) # Obtain intervals calculated using the bootstrap bias-corrected accelerated method
+#row.names(enmalle.parmsBCA)<-names(coef(enmalle.ZINB4))
+#head(enmalle.parmsBCA)
+#write.table(x=as.data.frame(enmalle.parmsBCA),file="enmallebootBCA.txt",row.names=T)
+#ci.enmalle<-data.frame(cbind(enmalle.parmsPERC,enmalle.parmsBCA,confint(enmalle.ZINB4)))
+#ci.enmalle<-ci.enmalle[,c(1,2,3,5,6,7,8)]
+#colnames(ci.enmalle)<-c("Estimate","pLow","pUpp","bcaLow","bcaUpp","2.5%","97.%")
+
+#we only present perc CI (BCA just in case reviewers required them)
+ci.enmalle<-data.frame(cbind(enmalle.parmsPERC,confint(enmalle.ZINB4)))
+colnames(ci.enmalle)<-c("Estimate","pLow","pUpp","2.5%","97.%")
+str(ci.enmalle)
+ci.enmalle
+write.table(ci.enmalle,file="ci_enmalle.txt",row.names=T)
 
 #9.4# Histograms of all components
 
-nasa.nb.boot.out2<-nasa.nb.boot.out$t[,c(1,3,5,7,9,11,13,15,17,19,21,23)] # Coefficients of interest from the boot object matrix
-par(mfrow=c(4,3))
-for (i in 1:12) {
+pdf(file="hist_bootnasa.pdf",width=10,height=12)
+
+par(mfrow=c(5,3))
+for (i in 1:13) {
   hist(nasa.nb.boot.out2[,i],breaks=50,col="light blue",main="",
       xlab=names(coef(nasa.NB2))[i])
   abline(v=coef(nasa.NB2)[i],col="red",lwd=2)
   }
 
-enmalle.nb.boot.out2<-nasa.nb.boot.out$t[,c(1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57)] # Coefficients of interest from the boot object matrix
-par(mfrow=c(6,10))
-for (i in 1:58) {
-  hist(enmalle.zinb.boot.out[,i],breaks=50,col="light blue",main="",
-       xlab=names(coef(enmalle.ZINB3))[i])
+dev.off()
+
+pdf(file="hist_bootenmalle.pdf",width=20,height=20)
+
+par(mfrow=c(8,8))
+for (i in 1:63) {
+  hist(enmalle.zinb.boot.out2[,i],breaks=50,col="light blue",main="",
+       xlab=names(coef(enmalle.ZINB4))[i])
   abline(v=coef(enmalle.ZINB3)[i],col="red",lwd=2)
 }
 
+dev.off()
+#check again this bootstrap
 
 # ----------------------------- #
 #10# Sketching results for the optimal model
 
 #10.1# plotting nasa model
-names(coef(nasa.NB2))
-#[1] "(Intercept)"      "lGRT"             "fyear2005"        "fyear2006"        "fyear2007"        "fyear2008"       
-#[7] "fyear2009"        "fyear2012"        "poly(Julian, 2)1" "poly(Julian, 2)2" "sstM"             "caladoNight"  
+summary(coef(nasa.NB2))
 
 #10.1.1# Continuous variables
 
-nbnasa1<-predict(nasa.NB2,
-            newdata=data.frame(lGRT=seq(min(nasa.pouting$lGRT,na.rm=T),
-                                        max(nasa.pouting$lGRT,na.rm=T),length=100), # lGRT
-                               fyear="2006",
-                               Julian=183,
-                               sstM=0,
-                               caladoNight=mean(nasa.pouting$caladoNight,na.rm=T),
-                               offs5=50))
+rugscalN<-data.frame(rugscalN=unique(nasa.pouting$caladoNight))
+rugsDoY<-data.frame(rugsDoY=unique(nasa.pouting$Julian))
+rugsDepth<-data.frame(rugsDepth=unique(nasa.pouting$Depth))
 
-nasaGRT<-data.frame(nbnasa1,seq(min(nasa.pouting$lGRT),max(nasa.pouting$lGRT),length=100))
-colnames(nasaGRT)<-c("nbnasa1","GRTSeq")
-nasaGRT$GRT<-exp(nasaSST$SSTSeq)
-head(nasaGRT)
-
-nasaf1<-ggplot(data=nasaGRT,aes(x=GRT,y=nbnasa1))+
-  geom_line(colour="blue",lwd=1)+
-  scale_y_continuous("Standardized Abundance",limits=c(4.8,5.25))+
-  scale_x_continuous("GRT",limits=c(0,5))
-nasaf1
-
-nbnasa2<-predict(nasa.NB2,
-                 newdata=data.frame(lGRT=mean(nasa.pouting$lGRT,na.rm=T),
+nasa.precaladoNight<-predict(nasa.NB2,type="response",
+                 newdata=data.frame(fGRT="C8-12",
                                     fyear="2006",
                                     Julian=183,
-                                    sstM=seq(min(nasa.pouting$sstM),max(nasa.pouting$sstM),length=100), #sstM
-                                    caladoNight=mean(nasa.pouting$caladoNight,na.rm=T),
-                                    offs5=50))
-
-nasaSST<-data.frame(nbnasa2,seq(min(nasa.pouting$sstM),max(nasa.pouting$sstM),length=100))
-colnames(nasaSST)<-c("nbnasa2","SSTSeq")
-head(nasaSST)
-
-nasaf2<-ggplot(data=nasaSST,aes(x=SSTSeq,y=nbnasa2))+
-  geom_line(colour="blue",lwd=1)+
-  scale_y_continuous("Standardized Abundance",limits=c(4.85,5.25))+
-  scale_x_continuous("res-SST",limits=c(-2.5,1.55))
-nasaf2
-
-nbnasa3<-predict(nasa.NB2,
-                 newdata=data.frame(lGRT=mean(nasa.pouting$lGRT,na.rm=T),
-                                    fyear="2006",
-                                    Julian=183,
-                                    sstM=0, 
+                                    Depth=mean(nasa.pouting$Depth,na.rm=T),
                                     caladoNight=seq(min(nasa.pouting$caladoNight),max(nasa.pouting$caladoNight),length=100), #caladonight
-                                    offs5=50))
+                                    OffSet=12))
 
-nasaCalN<-data.frame(nbnasa3,seq(min(nasa.pouting$caladoNight),max(nasa.pouting$caladoNight),length=100))
-colnames(nasaCalN)<-c("nbnasa3","CalNSeq")
-head(nasaCalN)
+nasa.precaladoNight<-data.frame(nasa.precaladoNight,seq(min(nasa.pouting$caladoNight),max(nasa.pouting$caladoNight),length=100))
+colnames(nasa.precaladoNight)<-c("CalNPre","CalNSeq")
+head(nasa.precaladoNight)
+summary(nasa.precaladoNight)
 
-nasaf3<-ggplot(data=nasaCalN,aes(x=CalNSeq,y=nbnasa3))+
+nasa.calN<-ggplot(data=nasa.precaladoNight,aes(x=CalNSeq,y=CalNPre))+
   geom_line(colour="blue",lwd=1)+
-  scale_y_continuous("Standardized Abundance",limits=c(2.45,5.35))+
-  scale_x_continuous("% Night operation",limits=c(0,1))
-nasaf3
+  scale_y_continuous("Standardized Abundance",limits=c(2.5,55))+
+  scale_x_continuous("% Night operation",limits=c(0,1))+
+  #((55-2.5)*0.01)+2.5
+  geom_segment(data=rugscalN,aes(x=rugscalN,xend=rugscalN,y=2.5,yend=3.025),stat="identity",lwd=0.5,col="gray50")
+nasa.calN
 
-nbnasa4<-predict(nasa.NB2,
-                 newdata=data.frame(lGRT=mean(nasa.pouting$lGRT,na.rm=T),
-                                    fyear="2006",
-                                    Julian=seq(1,365,1), #Julian
-                                    sstM=0, 
-                                    caladoNight=mean(nasa.pouting$caladoNight,na.rm=T),
-                                    offs5=50))
+nasa.preDepth<-predict(nasa.NB2,type="response",
+                             newdata=data.frame(fGRT="C8-12",
+                                                fyear="2006",
+                                                Julian=183,
+                                                Depth=seq(min(nasa.pouting$Depth),max(nasa.pouting$Depth),length=100), 
+                                                caladoNight=mean(nasa.pouting$caladoNight,na.rm=T),
+                                                OffSet=12))
 
-nasaJulian<-data.frame(nbnasa4,seq(1,365,1))
-colnames(nasaJulian)<-c("nbnasa4","JulianSeq")
-head(nasaJulian)
+nasa.preDepth<-data.frame(nasa.preDepth,seq(min(nasa.pouting$Depth),max(nasa.pouting$Depth),length=100))
+colnames(nasa.preDepth)<-c("DepthPre","DepthSeq")
+head(nasa.preDepth)
+summary(nasa.preDepth)
 
-nasaf4<-ggplot(data=nasaJulian,aes(x=JulianSeq,y=nbnasa4))+
+nasa.Depth<-ggplot(data=nasa.preDepth,aes(x=DepthSeq,y=DepthPre))+
   geom_line(colour="blue",lwd=1)+
-  scale_y_continuous("Standardized Abundance",limits=c(5,5.85))+
-  scale_x_continuous("Day of the Year",limits=c(1,365))
-nasaf4
+  scale_y_continuous("Standardized Abundance",limits=c(25,50))+
+  scale_x_continuous("Depth (m)",limits=c(min(nasa.pouting$Depth),max(nasa.pouting$Depth)))+
+  #((50-25)*0.01)+25
+  geom_segment(data=rugsDepth,aes(x=rugsDepth,xend=rugsDepth,y=25,yend=25.25),stat="identity",lwd=0.5,col="gray50")
+nasa.Depth
 
-pdf(file="NBcont-nasapouting.pdf",width=10,height=10)
-multiplot(nasaf1,nasaf2,nasaf3,nasaf4,cols=2)
-dev.off()
+nasa.preJulian<-predict(nasa.NB2,type="response",
+                       newdata=data.frame(fGRT="C8-12",
+                                          fyear="2006",
+                                          Julian=seq(1,365,1),
+                                          Depth=mean(nasa.pouting$Depth,na.rm=T), 
+                                          caladoNight=mean(nasa.pouting$caladoNight,na.rm=T),
+                                          OffSet=12))
+
+nasa.preJulian<-data.frame(nasa.preJulian,seq(1,365,1))
+colnames(nasa.preJulian)<-c("JulianPre","JulianSeq")
+head(nasa.preJulian)
+summary(nasa.preJulian)
+
+nasa.Julian<-ggplot(data=nasa.preJulian,aes(x=JulianSeq,y=JulianPre))+
+  geom_line(colour="blue",lwd=1)+
+  scale_y_continuous("Standardized Abundance",limits=c(35,145))+
+  scale_x_continuous("Day of the year",limits=c(1,365))+
+  #((145-35)*0.01)+35
+  geom_segment(data=rugsDoY,aes(x=rugsDoY,xend=rugsDoY,y=35,yend=36.1),stat="identity",lwd=0.5,col="gray50")
+nasa.Julian
 
 #10.1.2# Categorical variables
 
-nasa.newTrend<-data.frame(lGRT=rep(mean(nasa.pouting$lGRT,na.rm=T),times=7),
-                     fyear=c("2002","2005","2006","2007","2008","2009","2012"),
-                     Julian=rep(183,times=7),
-                     sstM=rep(0,times=7),
-                     caladoNight=rep(mean(nasa.pouting$caladoNight,na.rm=T),times=7),
-                     offs5=rep(50,times=7))
+nasa.preGRT<-data.frame(fGRT=c("C8","C8-12","C12"),
+                     fyear="2006",
+                     Julian=rep(183,times=3),
+                     Depth=rep(mean(nasa.pouting$Depth,na.rm=T),3),
+                     caladoNight=rep(mean(nasa.pouting$caladoNight,na.rm=T),times=3),
+                     OffSet=rep(12,times=3))
+nasa.preGRT<-predict(nasa.NB2,newdata=nasa.preGRT,type="response")
 
-nasa.abundInd<-predict(nasa.NB2,newdata=nasa.newTrend)
-years<-c(2002,2005,2006,2007,2008,2009,2012)
+nasa.preGRT<-data.frame(cbind(nasa.preGRT,c("C8","C8-12","C12")))
+colnames(nasa.preGRT)<-c("GRTPre","GRTSeq")
+nasa.preGRT$GRTPre<-round(as.numeric(levels(nasa.preGRT$GRTPre))[nasa.preGRT$GRTPre],digits = 2)
+nasa.preGRT$GRTSeq<-factor(nasa.preGRT$GRTSeq,levels = c("C8", "C8-12", "C12"))
+str(nasa.preGRT)
+summary(nasa.preGRT)
 
-nasa.poutingAbund<-data.frame(cbind(nasa.abundInd,years))
-colnames(nasa.poutingAbund)<-c("Index","Year")
-str(nasa.poutingAbund)
+nasa.GRT<-ggplot(nasa.preGRT, aes(x = factor(GRTSeq), y = GRTPre))+
+  geom_bar(stat = "identity",fill="blue",col="grey")+
+  scale_y_continuous("Standardized Index",limits=c(0,60))+
+  scale_x_discrete("GRT (tons)",labels=c("<8","8-12 tons",">12"))
+nasa.GRT
 
-pdf(file="NBTrend-nasapouting.pdf",width=10,height=7)
-
-ggplot(data=nasa.poutingAbund,aes(x=Year,y=Index))+
-  geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
-  scale_y_continuous("Standardized Index",limits=c(3.5,5.5))+
-  scale_x_continuous("Year",limits=c(1999,2013))
-
+pdf(file="NBfitvar-nasapouting.pdf",width=10,height=10)
+multiplot(nasa.GRT,nasa.Depth,nasa.Julian,nasa.calN,cols=2)
 dev.off()
 
-nasapouting.abund<-lm(Index~Year,data=nasa.poutingAbund)
-summary(nasapouting.abund) #decresing trend!
+nasa.preYear<-data.frame(fGRT=rep("C8-12",times=7),
+                     fyear=c("2002","2005","2006","2007","2008","2009","2012"),
+                     Julian=rep(183,times=7),
+                     Depth=rep(mean(nasa.pouting$Depth,na.rm=T),7),
+                     caladoNight=rep(mean(nasa.pouting$caladoNight,na.rm=T),times=7),
+                     OffSet=rep(12,times=7))
+
+nasa.preYear<-predict(nasa.NB2,newdata=nasa.preYear,type="response")
+
+nasa.preYear<-data.frame(cbind(nasa.preYear,c(2002,2005,2006,2007,2008,2009,2012)))
+colnames(nasa.preYear)<-c("YearPre","YearSeq")
+str(nasa.preYear)
+summary(nasa.preYear)
+
+pdf(file="NBTrend-nasapouting.pdf",width=8,height=8)
+ggplot(data=nasa.preYear,aes(x=YearSeq,y=YearPre))+
+  geom_line(lwd=0.5,linetype="dotted",col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
+  scale_y_continuous("Standardized Index",limits=c(10,50))+
+  scale_x_continuous("Year",limits=c(1999,2013))
+dev.off()
+
+nasa.Year<-ggplot(data=nasa.preYear,aes(x=YearSeq,y=YearPre))+
+  geom_line(lwd=0.5,linetype="dotted",col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
+  scale_y_continuous("Standardized Index",limits=c(65,165))+
+  scale_x_continuous("Year",limits=c(1999,2013))
+
+nasapouting.abund<-lm(YearPre~YearSeq,data=nasa.preYear)
+summary(nasapouting.abund) #Significant negative trend!
+par(mfrow=c(2,2))
+plot(nasapouting.abund)
 
 #10.2# plotting enmalle model
-names(coef(enmalle.ZINB3))
-#[1] "count_(Intercept)"           "count_GearVETAS"             "count_lGRT"                  "count_fyear2000"            
-#[5] "count_fyear2001"             "count_fyear2002"             "count_fyear2003"             "count_fyear2004"            
-#[9] "count_fyear2005"             "count_fyear2006"             "count_fyear2007"             "count_fyear2008"            
-#[13] "count_fyear2009"             "count_fyear2010"             "count_fyear2011"             "count_fyear2012"            
-#[17] "count_fyear2013"             "count_fZoneO2"               "count_fZoneO3"               "count_Julian"               
-#[21] "count_lDepth"                "count_caladoNight"           "count_Seafloormixed"         "count_Seafloorsoft"         
-#[25] "count_GearVETAS:lGRT"        "count_fyear2000:fZoneO2"     "count_fyear2001:fZoneO2"     "count_fyear2002:fZoneO2"    
-#[29] "count_fyear2003:fZoneO2"     "count_fyear2004:fZoneO2"     "count_fyear2005:fZoneO2"     "count_fyear2006:fZoneO2"    
-#[33] "count_fyear2007:fZoneO2"     "count_fyear2008:fZoneO2"     "count_fyear2009:fZoneO2"     "count_fyear2010:fZoneO2"    
-#[37] "count_fyear2011:fZoneO2"     "count_fyear2012:fZoneO2"     "count_fyear2013:fZoneO2"     "count_fyear2000:fZoneO3"    
-#[41] "count_fyear2001:fZoneO3"     "count_fyear2002:fZoneO3"     "count_fyear2003:fZoneO3"     "count_fyear2004:fZoneO3"    
-#[45] "count_fyear2005:fZoneO3"     "count_fyear2006:fZoneO3"     "count_fyear2007:fZoneO3"     "count_fyear2008:fZoneO3"    
-#[49] "count_fyear2009:fZoneO3"     "count_fyear2010:fZoneO3"     "count_fyear2011:fZoneO3"     "count_fyear2012:fZoneO3"    
-#[53] "count_fyear2013:fZoneO3"     "count_GearVETAS:lDepth"      "count_GearVETAS:caladoNight" "zero_(Intercept)"           
-#[57] "zero_lDepth 
+summary(enmalle.ZINB4)
+
+rugscalN2<-data.frame(rugscalN=unique(enmalle.pouting[enmalle.pouting$Gear=="MINOS",]$caladoNight))
+rugscalN3<-data.frame(rugscalN=unique(enmalle.pouting[enmalle.pouting$Gear=="VETAS",]$caladoNight))
+rugsDoY2<-data.frame(rugsDoY=unique(enmalle.pouting[enmalle.pouting$Gear=="MINOS",]$Julian))
+rugsDoY3<-data.frame(rugsDoY=unique(enmalle.pouting[enmalle.pouting$Gear=="VETAS",]$Julian))
+rugsDepth2<-data.frame(rugsDepth=unique(enmalle.pouting[enmalle.pouting$Gear=="MINOS",]$lDepth))
+  rugsDepth2<-data.frame(exp(rugsDepth2))
+rugsDepth3<-data.frame(rugsDepth=unique(enmalle.pouting[enmalle.pouting$Gear=="VETAS",]$lDepth))
+  rugsDepth3<-data.frame(exp(rugsDepth3))
 
 #10.2.1# ZI part
 
-newDepth<-seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length=100)
-logistDepth<-coef(enmalle.ZINB3,model="zero")[1]+(coef(enmalle.ZINB3,model="zero")[2]*newDepth)
-probDepth<-exp(logistDepth)/(1+exp(logistDepth))
-newDepth2<-exp(newDepth)
+rugsDepth4<-data.frame(rugsDepth=unique(enmalle.pouting$lDepth))
+  rugsDepth4<-data.frame(exp(rugsDepth4))
 
-par(mar=c(5,5,4,4))
-plot(newDepth2,probDepth,xlab="ln-Depth (m)",ylab="Probability of false zeros",type="n",cex.lab=1.4,cex.axis=1.3,ylim=c(0,1))
-lines(newDepth2,probDepth,col="blue",lwd=3)
-grid()
+enmalle.prezero<-predict(enmalle.ZINB4,type="zero",
+            newdata=data.frame(Gear="VETAS",
+                               fGRT="C5-10",
+                               fyear="2006",
+                               Julian=183, #Julian
+                               lDepth=seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length.out = 100),
+                               caladoNight=mean(enmalle.pouting$caladoNight,na.rm=T),
+                               fZoneO="1",
+                               Seafloor="hard",
+                               OffSet=200)) # Estandarizacion a num por 200 m2 por h (200 m2 es el tamaÃ±o legal aproximado de un paÃ±o: 50 m de largo por 4 de alto)
 
-#predict(zi) 
-zienmalle1<-predict(enmalle.ZINB3,type="zero",
-	newdata=data.frame(Gear="VETAS",
-					   lGRT=mean(enmalle.pouting$lGRT,na.rm=T),
-					   fyear="2006",
-					   Julian=183,
-					   lDepth=seq(min(enmalle.pouting$lDepth),
-					   			  max(enmalle.pouting$lDepth),length=100),
-					   caladoNight=mean(enmalle.pouting$caladoNight,na.rm=T),
-					   fZoneO="1",
-					   Seafloor="hard",
-					   offs1=200)) # Estandarizacion a num por 200 m2 por h (200 m2 es el tamaÃ±o legal aproximado de un paÃ±o: 50 m de largo por 4 de alto)
+enmalle.prezero<-data.frame(enmalle.prezero,
+                            seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length.out = 100))
+colnames(enmalle.prezero)<-c("ZeroPre","DepthSeq")
+enmalle.prezero$Depth<-exp(enmalle.prezero$DepthSeq)
+str(enmalle.prezero)
+summary(enmalle.prezero)
+enmalle.prezero
 
-prob0<-data.frame(zienmalle1,seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length=100))
-colnames(prob0)<-c("l1","DepthSeq")
+pdf(file="enmalle_preZIzero.pdf")
 
-pdf(file="ZIprob-enmallepouting.pdf")
-
-f0<-ggplot(data=prob0,aes(x=DepthSeq,y=l1))
-f0+geom_line(colour="blue",lwd=1)+
-	scale_y_continuous("Probability of false zeros",limits=c(0,0.45))+
-	scale_x_continuous("ln-Depth (m)",limits=c(0,5.5))
+ggplot(data=enmalle.prezero,aes(x=Depth,y=ZeroPre))+
+  geom_line(colour="blue",lwd=1)+
+  scale_y_continuous("Probability of false zeros",limits=c(-0.02,1))+
+  scale_x_continuous("ln-Depth (m)",limits=c(0,605))+
+  geom_segment(data=rugsDepth4,aes(x=rugsDepth,xend=rugsDepth,
+                                  y=-0.02,yend=-0.01),stat="identity",lwd=0.1,col="gray50")
 
 dev.off()
 
 #10.2.2# Continuous variables
 
-zinbenmalle1<-predict(enmalle.ZINB3,type="count",
+enmalle.preJulian<-predict(enmalle.ZINB4,type="count",
                       newdata=data.frame(Gear="VETAS",
-                                         lGRT=mean(enmalle.pouting$lGRT,na.rm=T),
+                                         fGRT="C5-10",
                                          fyear="2006",
                                          Julian=seq(1,365,1), #Julian
                                          lDepth=mean(enmalle.pouting$lDepth,na.rm=T),
                                          caladoNight=mean(enmalle.pouting$caladoNight,na.rm=T),
                                          fZoneO="1",
                                          Seafloor="hard",
-                                         offs1=200))
+                                         OffSet=200))
 
-enmalleJulian<-data.frame(zinbenmalle1,seq(1,365,1))
-colnames(enmalleJulian)<-c("zinbenmalle1","JulianSeq")
+enmalle.preJulian<-data.frame(enmalle.preJulian,seq(1,365,1))
+colnames(enmalle.preJulian)<-c("JulianPre","JulianSeq")
+str(enmalle.preJulian)
+summary(enmalle.preJulian)
 
-enmallef1<-ggplot(data=enmalleJulian,aes(x=JulianSeq,y=zinbenmalle1))+
+enmalle.Julian<-ggplot(data=enmalle.preJulian,aes(x=JulianSeq,y=JulianPre))+
+  geom_line(colour="blue",lwd=1)+
+  scale_y_continuous("Standardized Abundance",limits=c(1,1.75))+
+  scale_x_continuous("Day of the year",limits=c(1,365))+
+  #((1.75-1)*0.01)+1
+  geom_segment(data=rugsDoY2,aes(x=rugsDoY,xend=rugsDoY,y=1,yend=1.0075),stat="identity",lwd=0.5,col="gray50")
+enmalle.Julian
+
+enmalle.preDepth<-predict(enmalle.ZINB4,type="count",
+                           newdata=data.frame(Gear=c(rep("VETAS",100),rep("MINOS",100)),
+                                              fGRT="C5-10",
+                                              fyear="2006",
+                                              Julian=183,
+                                              lDepth=rep(seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length=100),2),
+                                              caladoNight=mean(enmalle.pouting$caladoNight,na.rm=T),
+                                              fZoneO="1",
+                                              Seafloor="hard",
+                                              OffSet=200))
+
+enmalle.preDepth<-data.frame(enmalle.preDepth,
+                             rep(seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length=100),2),
+                             c(rep("VETAS",100),rep("MINOS",100)))
+colnames(enmalle.preDepth)<-c("DepthPre","DepthSeq","Gear")
+enmalle.preDepth$Depth<-exp(enmalle.preDepth$DepthSeq)
+str(enmalle.preDepth)
+summary(enmalle.preDepth)
+
+enmalle.Depth1<-ggplot(data=enmalle.preDepth[enmalle.preDepth$Gear=="MINOS",],aes(x=Depth,y=DepthPre))+
+  geom_line(colour="blue",lwd=1,linetype=3)+
+  scale_y_continuous("Standardized Abundance")+
+  scale_x_continuous("Depth (m)",limits=c(1,605))+
+  geom_segment(data=rugsDepth2,aes(x=rugsDepth,xend=rugsDepth,y=0,yend=0.001),stat="identity",lwd=0.5,col="gray50")
+enmalle.Depth1
+
+enmalle.Depth2<-ggplot(data=enmalle.preDepth[enmalle.preDepth$Gear=="VETAS",],aes(x=Depth,y=DepthPre))+
   geom_line(colour="blue",lwd=1)+
   scale_y_continuous("Standardized Abundance")+
-  scale_x_continuous("Day of the Year")
-enmallef1 #I do not like this seasonal trend ¿lineal? Fuck off
+  scale_x_continuous("Depth (m)",limits=c(1,605))+
+  geom_segment(data=rugsDepth3,aes(x=rugsDepth,xend=rugsDepth,y=0,yend=0.03),stat="identity",lwd=0.5,col="gray50")
+enmalle.Depth2
 
-levels(enmalle.pouting$Gear)
-zinbenmalle2<-predict(enmalle.ZINB3,type="count",
-                      newdata=data.frame(Gear=c(rep("VETAS",100),rep("MINOS",100)),
-                                         lGRT=mean(enmalle.pouting$lGRT,na.rm=T),
-                                         fyear="2006",
-                                         Julian=183,
-                                         lDepth=c(rep(seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length.out=100),2)),
-                                         caladoNight=mean(enmalle.pouting$caladoNight,na.rm=T),
-                                         fZoneO="1",
-                                         Seafloor="hard",
-                                         offs1=200))
+enmalle.precaladoNight<-predict(enmalle.ZINB4,type="count",
+                          newdata=data.frame(Gear=c(rep("VETAS",100),rep("MINOS",100)),
+                                             fGRT="C5-10",
+                                             fyear="2006",
+                                             Julian=183,
+                                             lDepth=mean(enmalle.pouting$lDepth,na.rm=T),
+                                             caladoNight=rep(seq(min(enmalle.pouting$caladoNight),max(enmalle.pouting$caladoNight),length=100),2),
+                                             fZoneO="1",
+                                             Seafloor="hard",
+                                             OffSet=200))
 
-enmalleDepth<-data.frame(zinbenmalle2,
-                         c(rep(seq(min(enmalle.pouting$lDepth),max(enmalle.pouting$lDepth),length.out=100),2)),
-                         c(rep("VETAS",100),rep("MINOS",100)))
-colnames(enmalleDepth)<-c("zinbenmalle2","DepthSeq","GearSeq")
-enmalleDepth$Depth<-exp(enmalleDepth$DepthSeq)
-head(enmalleDepth)
+enmalle.precaladoNight<-data.frame(enmalle.precaladoNight,
+                             rep(seq(min(enmalle.pouting$caladoNight),max(enmalle.pouting$caladoNight),length=100),2),
+                             c(rep("VETAS",100),rep("MINOS",100)))
+colnames(enmalle.precaladoNight)<-c("CalNPre","CalNSeq","Gear")
+str(enmalle.precaladoNight)
+summary(enmalle.precaladoNight)
 
-enmallef2<-ggplot(data=enmalleDepth,aes(x=Depth,y=zinbenmalle2))+
+enmalle.calN1<-ggplot(data=enmalle.precaladoNight[enmalle.precaladoNight$Gear=="MINOS",],aes(x=CalNSeq,y=CalNPre))+
+  geom_line(colour="blue",lwd=1,linetype=3)+
+  scale_y_continuous("Standardized Abundance")+
+  scale_x_continuous("Depth (m)",limits=c(0,1))+
+  geom_segment(data=rugscalN2,aes(x=rugscalN,xend=rugscalN,y=0,yend=0.0005),stat="identity",lwd=0.5,col="gray50")
+enmalle.calN1
+
+enmalle.calN2<-ggplot(data=enmalle.precaladoNight[enmalle.precaladoNight$Gear=="VETAS",],aes(x=CalNSeq,y=CalNPre))+
   geom_line(colour="blue",lwd=1)+
   scale_y_continuous("Standardized Abundance")+
-  scale_x_continuous("Depth (m)")+
-  facet_wrap(~GearSeq)
-enmallef2
-
-zinbenmalle3<-predict(enmalle.ZINB3,type="count",
-                      newdata=data.frame(Gear=c(rep("VETAS",100),rep("MINOS",100)),
-                                         lGRT=mean(enmalle.pouting$lGRT,na.rm=T),
-                                         fyear="2006",
-                                         Julian=183,
-                                         lDepth=mean(enmalle.pouting$lDepth,na.rm=T),
-                                         caladoNight=c(rep(seq(min(enmalle.pouting$caladoNight),max(enmalle.pouting$caladoNight),length.out=100),2)),
-                                         fZoneO="1",
-                                         Seafloor="hard",
-                                         offs1=200))
-
-enmalleCalN<-data.frame(zinbenmalle3,
-                         c(rep(seq(min(enmalle.pouting$caladoNight),max(enmalle.pouting$caladoNight),length.out=100),2)),
-                         c(rep("VETAS",100),rep("MINOS",100)))
-colnames(enmalleCalN)<-c("zinbenmalle3","CalNSeq","GearSeq")
-head(enmalleCalN)
-
-enmallef3<-ggplot(data=enmalleCalN,aes(x=CalNSeq,y=zinbenmalle3))+
-  geom_line(colour="blue",lwd=1)+
-  scale_y_continuous("Standardized Abundance")+
-  scale_x_continuous("% Night soak time")+
-  facet_wrap(~GearSeq)
-enmallef3
-
-zinbenmalle4<-predict(enmalle.ZINB3,type="count",
-                      newdata=data.frame(Gear=c(rep("VETAS",100),rep("MINOS",100)),
-                                         lGRT=c(rep(seq(min(enmalle.pouting$caladoNight),max(enmalle.pouting$caladoNight),length.out=100),2)),
-                                         fyear="2006",
-                                         Julian=183,
-                                         lDepth=mean(enmalle.pouting$lDepth,na.rm=T),
-                                         caladoNight=mean(enmalle.pouting$lDepth,na.rm=T),
-                                         fZoneO="1",
-                                         Seafloor="hard",
-                                         offs1=200))
-
-enmalleGRT<-data.frame(zinbenmalle4,
-                        c(rep(seq(min(enmalle.pouting$caladoNight),max(enmalle.pouting$caladoNight),length.out=100),2)),
-                        c(rep("VETAS",100),rep("MINOS",100)))
-colnames(enmalleGRT)<-c("zinbenmalle4","GRTSeq","GearSeq")
-enmalleGRT$GRT<-exp(enmalleGRT$GRTSeq)
-head(enmalleGRT)
-
-enmallef4<-ggplot(data=enmalleGRT,aes(x=GRT,y=zinbenmalle4))+
-  geom_line(colour="blue",lwd=1)+
-  scale_y_continuous("Standardized Abundance")+
-  scale_x_continuous("GRT")+
-  facet_wrap(~GearSeq)
-enmallef4
+  scale_x_continuous("% Night",limits=c(0,1))+
+  geom_segment(data=rugscalN3,aes(x=rugscalN,xend=rugscalN,y=0,yend=0.035),stat="identity",lwd=0.5,col="gray50")
+enmalle.calN2
 
 #10.2.3# Categorical variables
 
-enmalle.newTrend<-data.frame(Gear=rep("VETAS",times=45),
-                             lGRT=rep(mean(enmalle.pouting$lGRT,na.rm=T),times=45),
-                             fyear=rep(c("1999","2000","2001","2002","2003","2004","2005",
-                                     "2006","2007","2008","2009","2010","2011","2012","2013"),3),
-                             Julian=rep(183,times=45),
-                             lDepth=rep(mean(enmalle.pouting$lDepth,na.rm=T),times=45),
-                             caladoNight=rep(mean(enmalle.pouting$caladoNight,na.rm=T),times=45),
-                             fZoneO=c(rep("1",times=15),rep("2",times=15),rep("3",times=15)),
-                             Seafloor=rep("hard",times=45),
-                             offs1=rep(200,times=45))
+enmalle.preGRT<-data.frame(Gear=c(rep("MINOS",5),rep("VETAS",5)),
+                             fGRT=rep(c("C5","C5-10","C10-15","C15-20","C>20"),2),
+                             fyear=rep("2006",10),
+                             Julian=rep(183,times=10),
+                             lDepth=rep(mean(enmalle.pouting$lDepth,na.rm=T),times=10),
+                             caladoNight=rep(mean(enmalle.pouting$caladoNight,na.rm=T),times=10),
+                             fZoneO=rep("1",times=10),
+                             Seafloor=rep("hard",times=10),
+                             OffSet=rep(200,times=10))
 
-enmalle.abundInd<-predict(enmalle.ZINB3,newdata=enmalle.newTrend,type="count")
+enmalle.preGRT<-predict(enmalle.ZINB4,newdata=enmalle.preGRT,type="count")
 
-enmalle.poutingAbund<-data.frame(cbind(enmalle.abundInd))
-colnames(enmalle.poutingAbund)<-c("Index")
-enmalle.poutingAbund$Year<-as.numeric(rep(seq(1999,2013,1),3))
-enmalle.poutingAbund$Zones<-c(rep("Rias Baixas",times=15),rep("Artabro",times=15),rep("Cantabrico",times=15))
-enmalle.poutingAbund$Zones <- ordered(enmalle.poutingAbund$Zones,
-                                      levels = c("Rias Baixas", "Artabro", "Cantabrico"))
-str(enmalle.poutingAbund)
+enmalle.preGRT<-data.frame(cbind(enmalle.preGRT),
+                           rep(c("C5","C5-10","C10-15","C15-20","C>20"),2),
+                           c(rep("MINOS",5),rep("VETAS",5)))
+colnames(enmalle.preGRT)<-c("GRTPre","GRTSeq","Gear")
+str(enmalle.preGRT)
+enmalle.preGRT
 
-pdf(file="ZINBTrend-enmallepouting.pdf",width=10,height=7)
-
-ggplot(data=enmalle.poutingAbund,aes(x=Year,y=Index))+
-  geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
+enmalle.GRT1<-ggplot(enmalle.preGRT[enmalle.preGRT$Gear=="MINOS",], aes(x = factor(GRTSeq), y = GRTPre))+
+  geom_bar(stat = "identity",fill="grey",col="blue",linetype=3,lwd=1)+
   scale_y_continuous("Standardized Index")+
-  scale_x_continuous("Year",limits=c(1999,2013))+
+  scale_x_discrete("GRT (tons)",labels=c("<5","5-10","10-15","15-20",">20"))
+enmalle.GRT1
+
+enmalle.GRT2<-ggplot(enmalle.preGRT[enmalle.preGRT$Gear=="VETAS",], aes(x = factor(GRTSeq), y = GRTPre))+
+  geom_bar(stat = "identity",fill="grey",col="blue",lwd=1)+
+  scale_y_continuous("Standardized Index")+
+  scale_x_discrete("GRT (tons)",labels=c("<5","5-10","10-15","15-20",">20"))
+enmalle.GRT2
+
+enmalle.GRT<-ggplot(enmalle.preGRT, aes(x = factor(GRTSeq), y = GRTPre))+
+  geom_bar(stat = "identity",fill="blue",col="black")+
+  scale_y_continuous("Standardized Index")+
+  scale_x_discrete("GRT (tons)",labels=c("<5","5-10","10-15","15-20",">20"))+
+  facet_wrap(~Gear,scales="free")
+enmalle.GRT
+
+enmalle.preSeafloor<-data.frame(Gear=rep("VETAS",3),
+                           fGRT=rep("C5-10",3),
+                           fyear=rep("2006",3),
+                           Julian=rep(183,times=3),
+                           lDepth=rep(mean(enmalle.pouting$lDepth,na.rm=T),times=3),
+                           caladoNight=rep(mean(enmalle.pouting$caladoNight,na.rm=T),times=3),
+                           fZoneO=rep("1",times=3),
+                           Seafloor=c("hard","mixed","soft"),
+                           OffSet=rep(200,times=3))
+
+enmalle.preSeafloor<-predict(enmalle.ZINB4,newdata=enmalle.preSeafloor,type="count")
+
+enmalle.preSeafloor<-data.frame(cbind(enmalle.preSeafloor),c("hard","mixed","soft"))
+colnames(enmalle.preSeafloor)<-c("SeafloorPre","SeafloorSeq")
+str(enmalle.preSeafloor)
+enmalle.preSeafloor
+
+enmalle.Seafloor<-ggplot(enmalle.preSeafloor, aes(x = factor(SeafloorSeq), y = SeafloorPre))+
+  geom_bar(stat = "identity",fill="blue",col="grey")+
+  scale_y_continuous("Standardized Index",limits=c(0,2.5))+
+  scale_x_discrete("Sea-floor type",labels=c("Hard","Mixed","Soft"))
+enmalle.Seafloor
+
+pdf(file="ZINBfitvar-enmallepouting.pdf",width=8,height=12)
+multiplot(enmalle.Depth1,enmalle.calN1,enmalle.GRT1,enmalle.Julian,enmalle.Depth2,enmalle.calN2,enmalle.GRT2,enmalle.Seafloor,cols=2)
+dev.off()
+
+enmalle.preYear<-data.frame(Gear=rep("VETAS",45),
+                                fGRT=rep("C5-10",45),
+                                fyear=rep(c("1999","2000","2001","2002","2003","2004","2005","2006","2007","2008","2009","2010","2011","2012","2013"),3),
+                                Julian=rep(183,times=45),
+                                lDepth=rep(mean(enmalle.pouting$lDepth,na.rm=T),times=45),
+                                caladoNight=rep(mean(enmalle.pouting$caladoNight,na.rm=T),times=45),
+                                fZoneO=c(rep("1",times=15),rep("2",times=15),rep("3",times=15)),
+                                Seafloor=rep("hard",45),
+                                OffSet=rep(200,times=3))
+
+enmalle.preYear<-predict(enmalle.ZINB4,newdata=enmalle.preYear,type="count")
+
+enmalle.preYear<-data.frame(cbind(enmalle.preYear,
+                                  rep(c(1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013),3),
+                                  c(rep("Rias Baixas",times=15),rep("Golfo Artabro",times=15),rep("Cantabrico",times=15))))
+colnames(enmalle.preYear)<-c("YearPre","YearSeq","Zones")
+enmalle.preYear$YearPre<-round(as.numeric(levels(enmalle.preYear$YearPre))[enmalle.preYear$YearPre],digits = 2)
+enmalle.preYear$YearSeq<-round(as.numeric(levels(enmalle.preYear$YearSeq))[enmalle.preYear$YearSeq],digits = 0)
+enmalle.preYear$Zones<-factor(enmalle.preYear$Zones,levels=c("Rias Baixas","Golfo Artabro","Cantabrico"))
+str(enmalle.preYear)
+summary(enmalle.preYear)
+enmalle.preYear
+
+pdf(file="ZINBTrend-enmallepouting.pdf",width=12,height=8)
+ggplot(data=enmalle.preYear,aes(x=YearSeq,y=YearPre))+
+  geom_line(lwd=0.5,linetype="dotted",col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
+  scale_y_continuous("Standardized Index",limits=c(0,3.5))+
+  scale_x_continuous("Year",breaks=c(2000,2005,2010),labels=c("2000","2005","2010"))+
   facet_wrap(~Zones)
-
 dev.off()
 
-enmallepouting.abund<-lm(Index~Year+Zones,data=enmalle.poutingAbund)
-summary(enmallepouting.abund)
-anova(enmallepouting.abund) #no decreasing trend, only zones diferencies
-
-newSeafloor<-data.frame(Gear=rep("VETAS",times=3),
-                        lGRT=rep(mean(enmalle.pouting$lGRT,na.rm=T),times=3),
-                        fyear=rep("2006",times=3),
-                        Julian=rep(183,times=3),
-                        lDepth=rep(mean(enmalle.pouting$lDepth,na.rm=T),times=3),
-                        caladoNight=rep(mean(enmalle.pouting$caladoNight,na.rm=T),times=3),
-                        fZoneO=rep("1",times=3),
-                        Seafloor=c("hard","mixed","soft"),
-                        offs1=rep(200,times=3))
-
-seafloorP<-predict(enmalle.ZINB3,newdata=newSeafloor,type="count")
-vals<-c(1,2,3)
-probSeafloor<-data.frame(cbind(seafloorP,vals))
-
-enmalleSFT<-ggplot(data=probSeafloor,aes(x=vals,y=seafloorP))+
-  geom_bar(stat="identity",fill="blue",col="blue")+
-  scale_y_continuous("")+scale_x_continuous("Seafloor type",breaks=c(1,2,3),
-                     labels=c("Hard","Mixed","Soft"))
-enmalleSFT
-
-pdf(file="ZINB-enmallepouting.pdf",width=20,height=30)
-multiplot(enmallef4,enmallef2,enmallef3,enmallef1,enmalleSFT,cols=2)
-dev.off()
+enmallepouting.abund<-lm(YearPre~YearSeq*Zones,data=enmalle.preYear)
+summary(enmallepouting.abund) 
+anova(enmallepouting.abund) #No Significant trend!
+par(mfrow=c(2,2))
+plot(enmallepouting.abund)
 
 #11# Plot of abundance, nominal cpue, and landings
 
@@ -2404,7 +2929,7 @@ dev.off()
 #nasa
 head(nasa.pouting)
 
-nasa.pouting$cpue<-(nasa.pouting$Ntot*50)/nasa.pouting$offs5 # Standardize at 50 pieces
+nasa.pouting$cpue<-(nasa.pouting$Ntot*12)/nasa.pouting$OffSet # Standardize at 50 pieces
 cpues.nasa<-tapply(nasa.pouting$cpue,nasa.pouting$Year,mean,na.rm=T)
 cpues.L.nasa<-tapply(nasa.pouting$cpue,nasa.pouting$Year,ci95Low)
 cpues.U.nasa<-tapply(nasa.pouting$cpue,nasa.pouting$Year,ci95Upp)
@@ -2416,19 +2941,24 @@ str(cpues.nasa.pouting)
 limits <- aes(ymax = ciUpp, ymin= ciLow)
 ggplot(data=cpues.nasa.pouting,aes(x=Year,y=Index))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
   geom_errorbar(limits, colour="blue", width=0)+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   scale_y_continuous("Standardized Index")+
   scale_x_continuous("Year",limits=c(1999,2013))
+#do not match CPU with predicted values
 
 #enmalle
 head(enmalle.pouting)
+enmalle.pouting
 
-enmalle.pouting$cpue<-(enmalle.pouting$Ntot*200)/enmalle.pouting$offs1 # Standardize at 200 m2 paño
+enmalle.pouting$cpue<-(enmalle.pouting$Ntot*200)/enmalle.pouting$OffSet # Standardize at 200 m2 paño
+enmalle.pouting2<-enmalle.pouting[enmalle.pouting$Gear=="VETAS",]
 
-enmalleRB<-enmalle.pouting[enmalle.pouting$ZoneO==1,]
-enmalleAR<-enmalle.pouting[enmalle.pouting$ZoneO==2,]
-enmalleCN<-enmalle.pouting[enmalle.pouting$ZoneO==3,]
+
+enmalleRB<-enmalle.pouting2[enmalle.pouting2$ZoneO==1,]
+enmalleAR<-enmalle.pouting2[enmalle.pouting2$ZoneO==2,]
+enmalleCN<-enmalle.pouting2[enmalle.pouting2$ZoneO==3,]
 
 cpues.enmalle.RB<-tapply(enmalleRB$cpue,enmalleRB$Year,mean,na.rm=T)
 cpues.L.enmalle.RB<-tapply(enmalleRB$cpue,enmalleRB$Year,ci95Low)
@@ -2443,8 +2973,8 @@ cpues.enmalle.AR<-tapply(enmalleAR$cpue,enmalleAR$Year,mean,na.rm=T)
 cpues.L.enmalle.AR<-tapply(enmalleAR$cpue,enmalleAR$Year,ci95Low)
 cpues.U.enmalle.AR<-tapply(enmalleAR$cpue,enmalleAR$Year,ci95Upp)
 cpues.enmalle.AR<-data.frame(cbind(cpues.enmalle.AR,cpues.L.enmalle.AR,cpues.U.enmalle.AR))
-cpues.enmalle.AR$Zones<-rep("Artabro",15)
-cpues.enmalle.AR$Year<-as.numeric(seq(1999,2013,1))
+cpues.enmalle.AR$Zones<-rep("Golfo Artabro",14)
+cpues.enmalle.AR$Year<-as.numeric(seq(2000,2013,1))
 colnames(cpues.enmalle.AR)<-c("Index","ciLow","ciUpp","Zones","Year")
 str(cpues.enmalle.AR)
 
@@ -2452,21 +2982,22 @@ cpues.enmalle.CN<-tapply(enmalleCN$cpue,enmalleCN$Year,mean,na.rm=T)
 cpues.L.enmalle.CN<-tapply(enmalleCN$cpue,enmalleCN$Year,ci95Low)
 cpues.U.enmalle.CN<-tapply(enmalleCN$cpue,enmalleCN$Year,ci95Upp)
 cpues.enmalle.CN<-data.frame(cbind(cpues.enmalle.CN,cpues.L.enmalle.CN,cpues.U.enmalle.CN))
-cpues.enmalle.CN$Zones<-rep("Cantabrico",15)
-cpues.enmalle.CN$Year<-as.numeric(seq(1999,2013,1))
+cpues.enmalle.CN$Zones<-rep("Cantabrico",14)
+cpues.enmalle.CN$Year<-as.numeric(seq(2000,2013,1))
 colnames(cpues.enmalle.CN)<-c("Index","ciLow","ciUpp","Zones","Year")
 str(cpues.enmalle.CN)
 
 cpues.enmalle.pouting<-data.frame(rbind(cpues.enmalle.RB,cpues.enmalle.AR,cpues.enmalle.CN))
 str(cpues.enmalle.pouting)
 cpues.enmalle.pouting
-cpues.enmalle.pouting$Zones <- ordered(cpues.enmalle.pouting$Zones,levels = c("Rias Baixas", "Artabro", "Cantabrico"))
+cpues.enmalle.pouting$Zones <- ordered(cpues.enmalle.pouting$Zones,levels = c("Rias Baixas", "Golfo Artabro", "Cantabrico"))
 
 limits <- aes(ymax = ciUpp, ymin= ciLow)
 ggplot(data=cpues.enmalle.pouting,aes(x=Year,y=Index))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
   geom_errorbar(limits, colour="blue", width=0)+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   scale_y_continuous("Standardized Index")+
   scale_x_continuous("Year")+
   facet_wrap(~Zones)
@@ -2483,33 +3014,39 @@ colnames(zone2)<-c("Year","Index")
 zone3<-landings.pouting[,c(1,14)]
 colnames(zone3)<-c("Year","Index")
 zones<-rbind(zone1,zone2,zone3)
-landings.pouting<-data.frame(cbind(zones,c(rep("Rias Baixas",18),rep("Artabro",18),rep("Cantabrico",18))))
+landings.pouting<-data.frame(cbind(zones,c(rep("Rias Baixas",18),rep("Golfo Artabro",18),rep("Cantabrico",18))))
 colnames(landings.pouting)<-c("Year","Index","Zones")
 str(landings.pouting)
 head(landings.pouting)
-landings.pouting$Zones <- ordered(landings.pouting$Zones,levels = c("Rias Baixas", "Artabro", "Cantabrico"))
+landings.pouting$Zones <- ordered(landings.pouting$Zones,levels = c("Rias Baixas", "Golfo Artabro", "Cantabrico"))
 
 ggplot(data=landings.pouting,aes(x=Year,y=Index))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   scale_y_continuous("Standardized Index")+
   scale_x_continuous("Year",limits=c(1999,2013))+
   facet_wrap(~Zones)
 
 #11.3# Comparing abundance index, nominal cpue, landings
 
-t1a<-ggplot(data=nasa.poutingAbund,aes(x=Year,y=Index))+
+head(nasa.preYear)
+head(enmalle.preYear)
+
+t1a<-ggplot(data=nasa.preYear,aes(x=YearSeq,y=YearPre))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   scale_y_continuous("Standardized Index")+
   scale_x_continuous("Year",limits=c(1999,2013))+
   ggtitle("Standardize abundance index (trap)")+
   theme(plot.title = element_text(size=26, face="bold"))
 t1a
 
-t1b<-ggplot(data=enmalle.poutingAbund,aes(x=Year,y=Index))+
+t1b<-ggplot(data=enmalle.preYear,aes(x=YearSeq,y=YearPre))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   scale_y_continuous("Standardized Index")+
   scale_x_continuous("Year",limits=c(1999,2013))+
   facet_wrap(~Zones)+
@@ -2519,7 +3056,8 @@ t1b
 
 t2a<-ggplot(data=cpues.nasa.pouting,aes(x=Year,y=Index))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   #geom_errorbar(limits, colour="blue", width=0)+
   scale_y_continuous("Nominal CPUE (nº/50pieces*h)")+
   scale_x_continuous("Year",limits=c(1999,2013))+
@@ -2529,7 +3067,8 @@ t2a
 
 t2b<-ggplot(data=cpues.enmalle.pouting,aes(x=Year,y=Index))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   #geom_errorbar(limits, colour="blue", width=0)+
   scale_y_continuous("Nominal CPUE (nº/200m2*h)")+
   scale_x_continuous("Year")+
@@ -2539,7 +3078,8 @@ t2b
 
 t3<-ggplot(data=landings.pouting,aes(x=Year,y=Index))+
   geom_line(lwd=0.5,linetype="dotted",col="blue")+
-  geom_point(size=5,col="blue")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3.5,col="blue")+
   scale_y_continuous("Total landings (kg)")+
   scale_x_continuous("Year",limits=c(1999,2013))+
   facet_wrap(~Zones)+facet_wrap(~Zones)+
@@ -2555,36 +3095,47 @@ multiplot(t1a,t2a,t3,t1b,t2b,t3,cols=2)
 
 dev.off()
 
+pdf(file="pouting_trends2.pdf",width=12,height=10)
+
+multiplot(t1b,t2b,t3,cols=1)
+
+dev.off()
+
 #correlations trends
 
-names(enmalle.poutingAbund)
+names(enmalle.preYear)
+dim(enmalle.preYear)
 names(cpues.enmalle.pouting)
+dim(cpues.enmalle.pouting)
 names(landings.pouting)
+dim(landings.pouting)
+
 landings.pouting2<-landings.pouting[landings.pouting$Year>1998&landings.pouting$Year<2014,]
+dim(landings.pouting2)
 
 #Rias Baixas
-cor(enmalle.poutingAbund[enmalle.poutingAbund$Zones=="Rias Baixas",]$Index,
+cor(enmalle.preYear[enmalle.preYear$Zones=="Rias Baixas",]$YearPre,
     cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Rias Baixas",]$Index,method="spearman")
-cor(enmalle.poutingAbund[enmalle.poutingAbund$Zones=="Rias Baixas",]$Index,
+cor(enmalle.preYear[enmalle.preYear$Zones=="Rias Baixas",]$YearPre,
     landings.pouting2[landings.pouting2$Zones=="Rias Baixas",]$Index,method="spearman")
 cor(cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Rias Baixas",]$Index,
     landings.pouting2[landings.pouting2$Zones=="Rias Baixas",]$Index,method="spearman")
 
 #Artabro
-cor(enmalle.poutingAbund[enmalle.poutingAbund$Zones=="Artabro",]$Index,
-    cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Artabro",]$Index,method="spearman")
-cor(enmalle.poutingAbund[enmalle.poutingAbund$Zones=="Artabro",]$Index,
-    landings.pouting2[landings.pouting2$Zones=="Artabro",]$Index,method="spearman")
-cor(cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Artabro",]$Index,
-    landings.pouting2[landings.pouting2$Zones=="Artabro",]$Index,method="spearman")
+cor(enmalle.preYear[enmalle.preYear$Zones=="Golfo Artabro"&enmalle.preYear$YearSeq>1999,]$YearPre,
+    cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Golfo Artabro",]$Index,method="spearman")
+cor(enmalle.preYear[enmalle.preYear$Zones=="Golfo Artabro",]$YearPre,
+    landings.pouting2[landings.pouting2$Zones=="Golfo Artabro",]$Index,method="spearman")
+cor(cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Golfo Artabro",]$Index,
+    landings.pouting2[landings.pouting2$Zones=="Golfo Artabro"&landings.pouting2$Year>1999,]$Index,method="spearman")
 
 #Cantabrico
-cor(enmalle.poutingAbund[enmalle.poutingAbund$Zones=="Cantabrico",]$Index,
+cor(enmalle.preYear[enmalle.preYear$Zones=="Cantabrico"&enmalle.preYear$YearSeq>1999,]$YearPre,
     cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Cantabrico",]$Index,method="spearman")
-cor(enmalle.poutingAbund[enmalle.poutingAbund$Zones=="Cantabrico",]$Index,
+cor(enmalle.preYear[enmalle.preYear$Zones=="Cantabrico",]$YearPre,
     landings.pouting2[landings.pouting2$Zones=="Cantabrico",]$Index,method="spearman")
 cor(cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Cantabrico",]$Index,
-    landings.pouting2[landings.pouting2$Zones=="Cantabrico",]$Index,method="spearman")
+    landings.pouting2[landings.pouting2$Zones=="Cantabrico"&landings.pouting2$Year>1999,]$Index,method="spearman")
 
 #ridiculous correlation with oficial landings :(
 
@@ -2594,37 +3145,95 @@ cor(cpues.enmalle.pouting[cpues.enmalle.pouting$Zones=="Cantabrico",]$Index,
 
 #12.1# Bootstrap
 
-newTrend2<-enmalle.newTrend
+#nasa
+
+newTrend<-data.frame(fGRT=rep("C8-12",times=7),
+                     fyear=c("2002","2005","2006","2007","2008","2009","2012"),
+                     Julian=rep(183,times=7),
+                     Depth=rep(mean(nasa.pouting$Depth,na.rm=T),7),
+                     caladoNight=rep(mean(nasa.pouting$caladoNight,na.rm=T),times=7),
+                     OffSet=rep(12,times=7))
+head(newTrend)
+
+Fit<-predict(nasa.NB2,type="response")
+
+Pearson<-residuals(nasa.NB2,type="pearson") # Pearson residuals
+VarComp<-residuals(nasa.NB2,type="response")/Pearson # Raw residuals/Pearson residuals
+
+Gear<-nasa.pouting$Gear
+fGRT<-nasa.pouting$fGRT
+fyear<-nasa.pouting$fyear
+Julian<-nasa.pouting$Julian
+Depth<-nasa.pouting$Depth
+caladoNight<-nasa.pouting$caladoNight
+OffSet<-nasa.pouting$OffSet
+
+#bootstraping residuals
+RR<-1000 # Number of resamples (reduce this number for testing the code)
+
+nasa.bootstrap<-replicate(n=RR,{ 
+  
+  yStar<-pmax(round(Fit+sample(Pearson)*VarComp,0),0)
+  try(mod<-glm.nb(yStar~offset(log(OffSet))+fGRT+fyear+poly(Julian,2)+Depth+caladoNight))
+  
+  if (exists("mod")) {
+    
+    predict(mod,newdata=newTrend,type="response")
+    
+  } else {rep(NA,times=15)} # If the above model crashes this fills in the gaps
+  # with NA and the algorithm continues
+  
+})
+
+CIs.nasa<-t(apply(X=nasa.bootstrap,MARGIN=1,FUN=quantile,c(0.025,0.975),na.rm=T))
+colnames(CIs.nasa)<-c("ciLow","ciUpp")
+newTrend$fit<-predict(nasa.NB2,newdata=newTrend,type="response")
+newTrend<-cbind(newTrend,CIs.nasa)
+newTrend$Year<-c(2002,2005,2006,2007,2008,2009,2012)
+names(newTrend)
+newTrend
+
+#enmalle
+
+newTrend2<-data.frame(Gear=rep("VETAS",45),
+                     fGRT=rep("C5-10",45),
+                     fyear=rep(c("1999","2000","2001","2002","2003","2004","2005","2006","2007","2008","2009","2010","2011","2012","2013"),3),
+                     Julian=rep(183,times=45),
+                     lDepth=rep(mean(enmalle.pouting$lDepth,na.rm=T),times=45),
+                     caladoNight=rep(mean(enmalle.pouting$caladoNight,na.rm=T),times=45),
+                     fZoneO=c(rep("1",times=15),rep("2",times=15),rep("3",times=15)),
+                     Seafloor=rep("hard",45),
+                     OffSet=rep(200,times=3))
 head(newTrend2)
 
-Fit<-predict(enmalle.ZINB3,type="response")
+Fit<-predict(enmalle.ZINB4,type="response")
 
-Pearson<-residuals(enmalle.ZINB3,type="pearson") # Pearson residuals
-VarComp<-residuals(enmalle.ZINB3,type="response")/Pearson # Raw residuals/Pearson residuals
+Pearson<-residuals(enmalle.ZINB4,type="pearson") # Pearson residuals
+VarComp<-residuals(enmalle.ZINB4,type="response")/Pearson # Raw residuals/Pearson residuals
 
 Gear<-enmalle.pouting$Gear
-lGRT<-enmalle.pouting$lGRT
+fGRT<-enmalle.pouting$fGRT
 fyear<-enmalle.pouting$fyear
 Julian<-enmalle.pouting$Julian
 lDepth<-enmalle.pouting$lDepth
 caladoNight<-enmalle.pouting$caladoNight
 fZoneO<-enmalle.pouting$fZoneO
 Seafloor<-enmalle.pouting$Seafloor
-offs1<-enmalle.pouting$offs1
+OffSet<-enmalle.pouting$OffSet
 
-RR<-10 # Number of resamples (reduce this number for testing the code)
+#bootstraping residuals
+RR<-1000 # Number of resamples (reduce this number for testing the code)
 
-bootstrap<-replicate(n=RR,{ 
+enmalle.bootstrap<-replicate(n=RR,{ 
 	
     yStar<-pmax(round(Fit+sample(Pearson)*VarComp,0),0)
-    try(mod<-zeroinfl(yStar~offset(log(offs1))+
-                        Gear*lGRT+
+    try(mod<-zeroinfl(yStar~offset(log(OffSet))+
+                        Gear*fGRT+
                         fyear*fZoneO+
                         Julian+
-                        Gear*lDepth+
-                        Gear*caladoNight+
-                        Seafloor|
-                        lDepth,
+                        lDepth*Gear+
+                        caladoNight*Gear+
+                        Seafloor|lDepth,
                       dist="negbin",link="logit"))
     
     if (exists("mod")) {
@@ -2636,74 +3245,148 @@ bootstrap<-replicate(n=RR,{
 
 })
 
-CIs<-t(apply(X=bootstrap,MARGIN=1,FUN=quantile,c(0.025,0.975),na.rm=T))
-colnames(CIs)<-c("ciLow","ciUpp")
-newTrend2$fit<-predict(enmalle.ZINB3,newdata=newTrend2,type="response")
-newTrend2<-cbind(newTrend2,CIs)
+CIs.enmalle<-t(apply(X=enmalle.bootstrap,MARGIN=1,FUN=quantile,c(0.025,0.975),na.rm=T))
+colnames(CIs.enmalle)<-c("ciLow","ciUpp")
+newTrend2$fit<-predict(enmalle.ZINB4,newdata=newTrend2,type="response")
+newTrend2<-cbind(newTrend2,CIs.enmalle)
 newTrend2$Year<-seq(1999,2013,1)
+names(newTrend2)
+newTrend2
 
 #12.2# Plot of abundance
-levels(newTrend2$fZoneO)<-c("1"="Rias Baixas", "2"="Artabro","3"="Cantabrico")
+
+#nasa
+
+pdf(file="pouting_nasaYearPredCI.pdf",width=10,height=8)
+
+limits <- aes(ymax = ciUpp, ymin= ciLow)
+ggplot(data=newTrend,aes(x=Year,y=fit))+
+  #geom_segment(aes(x=Year,y=fit,xend=Year,yend=ciUpp),col="black",lwd=0.5)+
+  #geom_segment(aes(x=Year,y=ciLow,xend=Year,yend=fit),col="black",lwd=0.5)+
+  geom_line(lwd=0.5,linetype="dotted",col="black")+
+  geom_errorbar(limits, colour="black", width=0)+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3,col="black")+
+  scale_y_continuous("Standardized Index of Abundance")+
+  scale_x_continuous("Year",limits=c(1999,2013),breaks=c(2000,2005,2010),labels=c(2000,2005,2010))
+
+dev.off()
+
+nasa.boot1<-ggplot(data=newTrend,aes(x=Year,y=fit))+
+  #geom_segment(aes(x=Year,y=fit,xend=Year,yend=ciUpp),col="black",lwd=0.5)+
+  #geom_segment(aes(x=Year,y=ciLow,xend=Year,yend=fit),col="black",lwd=0.5)+
+  geom_line(lwd=0.5,linetype="dotted",col="black")+
+  geom_errorbar(limits, colour="black", width=0)+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3,col="black")+
+  scale_y_continuous("Standardized Index of Abundance")+
+  scale_x_continuous("Year",limits=c(1999,2013),breaks=c(2000,2005,2010),labels=c(2000,2005,2010))+
+  ggtitle("Standardized abundance index")+
+  theme(plot.title = element_text(size=26, face="bold"))
+nasa.boot1
+
+cpues.nasa.pouting2<-cpues.nasa.pouting
+min(cpues.nasa.pouting2$ciLow)
+#cpues.enmalle.pouting2$ciLow<-ifelse(cpues.enmalle.pouting2$ciLow<0,0,cpues.enmalle.pouting2$ciLow)
+limits <- aes(ymax = ciUpp, ymin= ciLow)
+nasa.cpue1<-ggplot(data=cpues.nasa.pouting2,aes(x=Year,y=Index))+
+  geom_line(lwd=0.5,linetype="dotted",col="black")+
+  geom_errorbar(limits, colour="black", width=0)+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3,col="black")+
+  scale_y_continuous("Nominal CPUE (nº/50traps*h)")+
+  scale_x_continuous("Year",limits=c(1999,2013),breaks=c(2000,2005,2010),labels=c(2000,2005,2010))+
+  ggtitle("Nominal CPUE")+
+  theme(plot.title = element_text(size=26, face="bold"))
+nasa.cpue1
+
+landings.pouting2<-read.table(file="faneca_landings.txt",header=T,dec=".")
+landings.pouting2<-landings.pouting2[,c(1,2)]
+
+nasa.landing1<-ggplot(data=landings.pouting2,aes(x=year,y=totland))+
+  geom_line(lwd=0.5,linetype="dotted",col="black")+
+  geom_point(size=5,col="gray90")+
+  geom_point(size=3,col="black")+
+  scale_y_continuous("Total landings (kg)")+
+  scale_x_continuous("Year",limits=c(1999,2013))+
+  ggtitle("Oficial landings")+
+  theme(plot.title = element_text(size=26, face="bold"))
+nasa.landing1
+
+multiplot(nasa.boot1,nasa.cpue1,nasa.landing1,cols=1)
+
+pdf(file="pouting-nasa_trends.pdf",width=15,height=20)
+
+multiplot(nasa.boot1,nasa.cpue1,nasa.landing1,cols=1)
+
+dev.off()
+
+#enmalle
+
+levels(newTrend2$fZoneO)<-c("1"="Rias Baixas", "2"="Golfo Artabro","3"="Cantabrico")
 levels(newTrend2$fZoneO)
 
-pdf(file="pouting_YearPredCI.pdf",width=10,height=8)
+pdf(file="pouting_enmalleYearPredCI.pdf",width=10,height=8)
 
+limits <- aes(ymax = ciUpp, ymin= ciLow)
 ggplot(data=newTrend2,aes(x=Year,y=fit))+
-	geom_segment(aes(x=Year,y=fit,xend=Year,yend=ciUpp),col="blue",lwd=0.5)+
-	geom_segment(aes(x=Year,y=ciLow,xend=Year,yend=fit),col="blue",lwd=0.5)+
-	geom_line(lwd=0.5,linetype="dotted",col="blue")+
-	geom_point(size=5,col="gray90")+
-	geom_point(size=3,col="blue")+
-	scale_y_continuous("Standardized Index of Abundance")+
-	scale_x_continuous("Year",breaks=c(1999,2001,2003,2005,2007,2009,2011,2013))+
+	#geom_segment(aes(x=Year,y=fit,xend=Year,yend=ciUpp),col="black",lwd=0.5)+
+	#geom_segment(aes(x=Year,y=ciLow,xend=Year,yend=fit),col="black",lwd=0.5)+
+	geom_line(lwd=0.5,linetype="dotted",col="black")+
+  geom_errorbar(limits, colour="black", width=0)+
+  geom_point(size=5,col="gray90")+
+	geom_point(size=3,col="black")+
+  scale_y_continuous("Standardized Index of Abundance")+
+	scale_x_continuous("Year")+
   facet_wrap(~fZoneO)
 
 dev.off()
 
-boot1<-ggplot(data=newTrend2,aes(x=Year,y=fit))+
-  geom_segment(aes(x=Year,y=fit,xend=Year,yend=ciUpp),col="blue",lwd=0.5)+
-  geom_segment(aes(x=Year,y=ciLow,xend=Year,yend=fit),col="blue",lwd=0.5)+
-  geom_line(lwd=0.5,linetype="dotted",col="blue")+
+enmalle.boot1<-ggplot(data=newTrend2,aes(x=Year,y=fit))+
+  #geom_segment(aes(x=Year,y=fit,xend=Year,yend=ciUpp),col="black",lwd=0.5)+
+  #geom_segment(aes(x=Year,y=ciLow,xend=Year,yend=fit),col="black",lwd=0.5)+
+  geom_line(lwd=0.5,linetype="dotted",col="black")+
+  geom_errorbar(limits, colour="black", width=0)+
   geom_point(size=5,col="gray90")+
-  geom_point(size=3,col="blue")+
+  geom_point(size=3,col="black")+
   scale_y_continuous("Standardized Index of Abundance")+
   scale_x_continuous("Year")+
   facet_wrap(~fZoneO,scales="free_y")+
   ggtitle("Standardized abundance index")+
   theme(plot.title = element_text(size=26, face="bold"))
-boot1
+enmalle.boot1
 
 cpues.enmalle.pouting2<-cpues.enmalle.pouting
 min(cpues.enmalle.pouting2$ciLow)
 cpues.enmalle.pouting2$ciLow<-ifelse(cpues.enmalle.pouting2$ciLow<0,0,cpues.enmalle.pouting2$ciLow)
 limits <- aes(ymax = ciUpp, ymin= ciLow)
-cpue1<-ggplot(data=cpues.enmalle.pouting2,aes(x=Year,y=Index))+
-  geom_line(lwd=0.5,linetype="dotted",col="blue")+
+enmalle.cpue1<-ggplot(data=cpues.enmalle.pouting2,aes(x=Year,y=Index))+
+  geom_line(lwd=0.5,linetype="dotted",col="black")+
+  geom_errorbar(limits, colour="black", width=0)+
   geom_point(size=5,col="gray90")+
-  geom_point(size=3,col="blue")+
-  geom_errorbar(limits, colour="blue", width=0)+
+  geom_point(size=3,col="black")+
   scale_y_continuous("Nominal CPUE (nº/200m2*h)")+
   scale_x_continuous("Year")+
   facet_wrap(~Zones,scales="free_y")+
   ggtitle("Nominal CPUE")+
   theme(plot.title = element_text(size=26, face="bold"))
-cpue1
+enmalle.cpue1
 
-landing1<-ggplot(data=landings.pouting,aes(x=Year,y=Index))+
-  geom_line(lwd=0.5,linetype="dotted",col="blue")+
+enmalle.landing1<-ggplot(data=landings.pouting,aes(x=Year,y=Index))+
+  geom_line(lwd=0.5,linetype="dotted",col="black")+
   geom_point(size=5,col="gray90")+
-  geom_point(size=3,col="blue")+
+  geom_point(size=3,col="black")+
   scale_y_continuous("Total landings (kg)")+
   scale_x_continuous("Year",limits=c(1999,2013))+
   facet_wrap(~Zones,scales="free_y")+
   ggtitle("Oficial landings")+
   theme(plot.title = element_text(size=26, face="bold"))
-landing1
+enmalle.landing1
 
-multiplot(boot1,cpue1,landing1,cols=1)
+multiplot(enmalle.boot1,enmalle.cpue1,enmalle.landing1,cols=1)
 
 pdf(file="pouting-enmalle_trends.pdf",width=15,height=20)
 
-multiplot(boot1,cpue1,landing1,cols=1)
+multiplot(enmalle.boot1,enmalle.cpue1,enmalle.landing1,cols=1)
 
 dev.off()
