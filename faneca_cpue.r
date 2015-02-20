@@ -4,7 +4,7 @@
 ##########################################################
 
 #Date start: April 2014 by Jaime Otero (bulk of code from pollachius analysis)
-#Last update: 17-02-2015 by Alex Alonso
+#Last update: 18-02-2015 by Alex Alonso
 #many code string were carried out by Jaime Otero during POollachius pollachius analysis
 #input data comes from "preparation_data_base_casgass.R" code that generate faneca.txt file
 #General objective: to analyse variation of catch rates from monitoring program data of UTPB
@@ -913,7 +913,7 @@ pouting6$Period<-factor(ifelse(pouting6$caladoNight <= 0.25,2,
 
 #6.4 added by Alex Alonso
 
-#we are not work with it
+#we are not going to work with it
 
 #añadimos una nueva variable indicativa del tamaño promedio de los individuos capturados
 #Wtot/Ntot puede ser utilizada como indicativo de cambios de distribución ontogénicos???
@@ -1187,8 +1187,8 @@ enmalle.pouting$Idflota<-as.factor(enmalle.pouting$Idflota)
 enmalle.pouting$Idlance<-as.factor(enmalle.pouting$Idlance)
 enmalle.pouting$Idjornada<-as.factor(enmalle.pouting$Idjornada)
 #not well ditributed GRT
-#so we are going to do 3 main classes to avoid extrange patterns in linear response
-# 0-8 / 8-12 / >12
+#so we are going to do 5 main classes to avoid extrange patterns in linear response
+# "C5", "C5-10", "C10-15","C15-20","C>20"
 enmalle.pouting$fGRT<-as.factor(ifelse(enmalle.pouting$GRT<5,"C5",
                                     ifelse(enmalle.pouting$GRT<10,"C5-10",
                                            ifelse(enmalle.pouting$GRT<15,"C10-15",
@@ -1266,6 +1266,8 @@ sum(residuals(nasa.negbin1,type="pearson")^2)/(nrow(nasa.pouting)-(length(coef(n
 #http://cran.r-project.org/web/packages/msme/msme.pdf
 #http://cran.r-project.org/web/packages/COUNT/COUNT.pdf
 #https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=10&cad=rja&uact=8&ved=0CG4QFjAJ&url=http%3A%2F%2Fwww.cambridge.org%2Fch%2Fdownload_file%2F846106%2F&ei=xofbVOLSA4WBU82HgbAC&usg=AFQjCNEGGL69wK3m3m5Q7K8tN5ZHljTFFQ&sig2=42OpyYD42s7ju9B2OPcdNw
+
+odTest(nasa.negbin1)
 
 OFFSET<-nasa.pouting$OffSet
 
@@ -1622,8 +1624,14 @@ logliks.nasa[order(-logliks.nasa$logLik),]
 
 #8.1.7.4# Vuong test to compare NB vs ZINB
 # do not run with random models
+#On the Misuse of The Vuong Test 
+#http://cybermetrics.wlv.ac.uk/paperdata/misusevuong.pdf
+#It is beyond doubt that the widespread practice of using Vuong's test
+#for non-nested models as a test of zero-inflation is erroneous
 
-vuong(nasa.zinb1,nasa.negbin1)
+vuong(nasa.poiss1,nasa.negbin1)
+vuong(nasa.poiss1,nasa.zipoiss1)
+vuong(nasa.negbin1,nasa.zinb1)
 #mejor NB
 
 #8.1.7.5# Predicting probabilities
@@ -1747,6 +1755,8 @@ summary(enmalle.negbin1)
 Anova(enmalle.negbin1)
 plot(allEffects(enmalle.negbin1))
 sum(residuals(enmalle.negbin1,type="pearson")^2)/(nrow(enmalle.pouting)-(length(coef(enmalle.negbin1))+1)) 
+
+odTest(enmalle.negbin1)
 
 #8.2.5# Mixed model NB
 
@@ -1919,8 +1929,9 @@ logliks.enmalle[order(-logliks.enmalle$logLik),]
 #8.2.7.4# Vuong test to compare NB vs ZINB
 # do not run with random models
 
-vuong(enmalle.zinb1,enmalle.negbin1)
-vuong(enmalle.zinb2,enmalle.negbin1)
+vuong(enmalle.poiss1,enmalle.negbin1)
+vuong(enmalle.poiss1,enmalle.zipoiss1)
+vuong(enmalle.negbin1,enmalle.zinb1)
 vuong(enmalle.zinb1,enmalle.zinb2)
 
 #8.2.7.5# Predicting probabilities
@@ -2805,7 +2816,7 @@ summary(enmalle.precaladoNight)
 enmalle.calN1<-ggplot(data=enmalle.precaladoNight[enmalle.precaladoNight$Gear=="MINOS",],aes(x=CalNSeq,y=CalNPre))+
   geom_line(colour="blue",lwd=1,linetype=3)+
   scale_y_continuous("Standardized Abundance")+
-  scale_x_continuous("Depth (m)",limits=c(0,1))+
+  scale_x_continuous("% Night",limits=c(0,1))+
   geom_segment(data=rugscalN2,aes(x=rugscalN,xend=rugscalN,y=0,yend=0.0005),stat="identity",lwd=0.5,col="gray50")
 enmalle.calN1
 
